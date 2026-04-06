@@ -1,4 +1,3 @@
-const GEMINI_KEY = 'AIzaSyAOTzELJuO09xgLjC0k9FIkQlpXyyMfxnc';
 
 const CALORIE_GOAL = 1800;
 const getCalGoal = () => window.DYNAMIC_CALORIE_GOAL || CALORIE_GOAL;
