@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <title>NutriSnap</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="manifest" href="manifest.json"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <meta name="theme-color" content="#3B6D11"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet"/>
+  <script defer src="nutrisnap.js"></script>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">Macro<span>Cam</span></div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div class="topbar-date" id="today-date"></div>
+    <button class="dark-toggle" id="dark-toggle" onclick="toggleDark()" title="Toggle dark mode">🌙</button>
+  </div>
+</div>
+
+<!-- SCREENS -->
+<div class="screens">
+
+  <!-- ① SCAN -->
+  <div class="screen active" id="screen-scan">
+    <div class="screen-title">Scan food</div>
+    <div class="screen-sub">Take a photo or upload to identify</div>
+
+    <div class="cam-box" id="cam-box" onclick="document.getElementById('camera-input').click()">
+      <img class="cam-preview" id="cam-preview"/>
+      <div class="cam-overlay" id="cam-overlay">
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+        <div class="cam-icon-circle">
+          <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="3"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/><circle cx="12" cy="14" r="3"/></svg>
+        </div>
+        <div class="cam-hint-txt">Tap to take photo</div>
+      </div>
+      <div class="scan-line" id="scan-line"></div>
+    </div>
+
+    <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none"/>
+    <input type="file" id="gallery-input" accept="image/*" style="display:none"/>
+
+    <button class="btn-primary" id="analyze-btn" disabled>Analyze food</button>
+
+    <div class="or-row"><div class="or-line"></div><div class="or-txt">or</div><div class="or-line"></div></div>
+
+    <label class="btn-outline" for="gallery-input">Upload from gallery</label>
+
+    <div class="status-bar" id="status-bar" style="margin-top:14px">
+      <div class="spinner"></div>
+      <div class="status-txt" id="status-txt">Identifying food…</div>
+    </div>
+
+    <div class="scan-counter">Scans today: <span id="scan-count">0</span> / 10</div>
+
+    <div style="margin-top:16px">
+      <div class="sec-lbl">Or search manually</div>
+      <div class="manual-wrap" style="position:relative;">
+        <input class="manual-input" id="manual-input" type="text" placeholder="e.g. chicken, banana…" autocomplete="off"/>
+        <div id="search-suggestions" style="display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--white);border:1.5px solid var(--border2);border-radius:14px;overflow:hidden;z-index:200;box-shadow:0 8px 30px rgba(0,0,0,0.1);"></div>
+      </div>
+    </div>
+
+    <div class="or-row" style="margin-top:16px;"><div class="or-line"></div><div class="or-txt">or</div><div class="or-line"></div></div>
+
+    <!-- BARCODE SECTION (inline) -->
+    <div id="barcode-section" style="display:none;margin-top:4px;">
+      <div class="screen-title" style="font-size:1rem;margin-bottom:4px;">Barcode scan</div>
+      <div style="position:relative;border-radius:18px;overflow:hidden;background:var(--off);margin-bottom:14px;">
+        <video id="barcode-video" style="width:100%;display:block;border-radius:18px;" playsinline autoplay muted></video>
+        <canvas id="barcode-canvas" style="display:none;"></canvas>
+        <div style="position:absolute;inset:0;pointer-events:none;">
+          <div style="position:absolute;top:14px;left:14px;width:22px;height:22px;border-top:2.5px solid var(--green);border-left:2.5px solid var(--green);border-radius:5px 0 0 0;"></div>
+          <div style="position:absolute;top:14px;right:14px;width:22px;height:22px;border-top:2.5px solid var(--green);border-right:2.5px solid var(--green);border-radius:0 5px 0 0;"></div>
+          <div style="position:absolute;bottom:14px;left:14px;width:22px;height:22px;border-bottom:2.5px solid var(--green);border-left:2.5px solid var(--green);border-radius:0 0 0 5px;"></div>
+          <div style="position:absolute;bottom:14px;right:14px;width:22px;height:22px;border-bottom:2.5px solid var(--green);border-right:2.5px solid var(--green);border-radius:0 0 5px 0;"></div>
+        </div>
+      </div>
+      <button class="btn-primary" id="barcode-start-btn" onclick="startBarcodeScanner()">Start camera</button>
+      <button class="btn-outline" id="barcode-stop-btn" onclick="stopBarcodeScanner()" style="margin-top:8px;display:none;">Stop camera</button>
+      <div class="status-bar" id="barcode-status" style="margin-top:14px;display:none;">
+        <div class="spinner"></div>
+        <div class="status-txt" id="barcode-status-txt">Looking for barcode…</div>
+      </div>
+      <div style="margin-top:16px;">
+        <div class="sec-lbl">Or enter barcode manually</div>
+        <div style="display:flex;gap:8px;">
+          <input class="manual-input" id="barcode-manual" type="number" placeholder="e.g. 3017620422003" style="flex:1;"/>
+          <button class="btn-primary" style="width:auto;padding:0 16px;" onclick="lookupBarcode(document.getElementById('barcode-manual').value)">Go</button>
+        </div>
+      </div>
+      <div id="barcode-result" style="margin-top:14px;display:none;"></div>
+    </div>
+
+    <button class="btn-outline" id="barcode-toggle-btn" onclick="toggleBarcodeSection()" style="margin-top:12px;">📦 Scan barcode</button>
+  </div>
+
+  <!-- ② RESULT -->
+  <div class="screen" id="screen-result">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+      <button onclick="switchTab(document.querySelector('[data-screen=\"scan\"]'))" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--green);font-size:1.1rem;">&#8592;</button>
+      <div class="screen-title" style="margin-bottom:0;">Result</div>
+    </div>
+    <div class="screen-sub">Nutrition breakdown</div>
+
+    <div class="empty-result" id="empty-result">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M17 17l4 4"/></svg>
+      </div>
+      <div class="empty-title">No scan yet</div>
+      <div class="empty-sub">Go to Scan tab and take a photo</div>
+    </div>
+
+    <div class="result-card" id="result-card" style="display:none">
+      <!-- 3D visual — health score sphere -->
+      <div class="model-3d-wrap">
+        <canvas id="three-canvas"></canvas>
+      </div>
+
+      <!-- health badge -->
+      <div id="health-badge-wrap"></div>
+
+      <!-- food name + kcal -->
+      <div class="section-bg">
+        <div class="food-header">
+          <div class="food-img-wrap" id="food-thumb"></div>
+          <div style="flex:1;">
+            <div class="food-name" id="food-name-el">—</div>
+            <div class="food-kcal" id="food-kcal-el">—</div>
+          </div>
+          <button class="fav-btn" id="fav-btn" onclick="toggleFavorite()" title="Save to favorites">🤍</button>
+        </div>
+      </div>
+
+      <!-- portion selector — full unit picker -->
+      <div class="section-bg" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div class="portion-lbl" style="font-weight:600;color:var(--text)">Portion size</div>
+          <div style="font-size:0.72rem;color:var(--green);font-weight:700;" id="portion-converted">—</div>
+        </div>
+        <!-- amount input row -->
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="portion-btn" onclick="adjustAmount(-1)">−</button>
+          <input id="portion-amount" type="number" min="0.1" step="0.1" value="100"
+            style="flex:1;text-align:center;background:var(--white);border:1.5px solid var(--border2);border-radius:10px;padding:8px;font-family:'DM Sans',sans-serif;font-size:0.95rem;font-weight:700;color:var(--text);outline:none;"
+            oninput="onPortionChange()"/>
+          <button class="portion-btn" onclick="adjustAmount(1)">+</button>
+        </div>
+        <!-- unit selector -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="unit-btn active" data-unit="g" onclick="selectUnit(this)">g</button>
+          <button class="unit-btn" data-unit="kg" onclick="selectUnit(this)">kg</button>
+          <button class="unit-btn" data-unit="oz" onclick="selectUnit(this)">oz</button>
+          <button class="unit-btn" data-unit="lb" onclick="selectUnit(this)">lb</button>
+          <button class="unit-btn" data-unit="cup" onclick="selectUnit(this)">cup</button>
+          <button class="unit-btn" data-unit="tbsp" onclick="selectUnit(this)">tbsp</button>
+          <button class="unit-btn" data-unit="tsp" onclick="selectUnit(this)">tsp</button>
+        </div>
+      </div>
+
+      <!-- macro grid -->
+      <div class="macro-grid" id="macro-grid">
+        <div class="macro-card"><div class="macro-val" id="m-carbs">—</div><div class="macro-lbl">Carbs</div></div>
+        <div class="macro-card"><div class="macro-val" id="m-protein">—</div><div class="macro-lbl">Protein</div></div>
+        <div class="macro-card"><div class="macro-val" id="m-fat">—</div><div class="macro-lbl">Fat</div></div>
+      </div>
+
+      <!-- extra macros: fiber + sugar -->
+      <div class="extra-macros">
+        <div class="extra-pill"><span class="extra-k">Fiber</span><span class="extra-v" id="m-fiber">—</span></div>
+        <div class="extra-pill"><span class="extra-k">Sugar</span><span class="extra-v" id="m-sugar">—</span></div>
+      </div>
+
+      <!-- animated bars -->
+      <div class="section-bg bars-section" id="bars-section">
+        <div class="bar-item">
+          <div class="bar-meta"><span class="bar-name">Carbohydrates</span><span class="bar-pct" id="bp-carbs">0%</span></div>
+          <div class="bar-track"><div class="bar-fill" id="bf-carbs"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-meta"><span class="bar-name">Protein</span><span class="bar-pct" id="bp-protein">0%</span></div>
+          <div class="bar-track"><div class="bar-fill" id="bf-protein" style="background:var(--green-m)"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-meta"><span class="bar-name">Fat</span><span class="bar-pct" id="bp-fat">0%</span></div>
+          <div class="bar-track"><div class="bar-fill" id="bf-fat" style="background:#a3c96a"></div></div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center;background:var(--off);border-radius:12px;padding:10px 12px;">
+        <span style="font-size:0.78rem;color:var(--hint);white-space:nowrap;">Price (optional)</span>
+        <input id="meal-price-input" type="number" placeholder="$0.00" min="0" step="0.01"
+          style="flex:1;background:var(--white);border:1.5px solid var(--border2);border-radius:10px;padding:7px 10px;font-family:'DM Sans',sans-serif;font-size:0.85rem;color:var(--text);outline:none;"/>
+      </div>
+
+      <button class="btn-primary" id="log-btn">+ Log to diary</button>
+
+      <!-- meal category picker -->
+      <div class="meal-cat-row" id="meal-cat-row">
+        <button class="cat-btn active" data-cat="breakfast">🌅 Breakfast</button>
+        <button class="cat-btn" data-cat="lunch">☀️ Lunch</button>
+        <button class="cat-btn" data-cat="dinner">🌙 Dinner</button>
+        <button class="cat-btn" data-cat="snack">🍎 Snack</button>
+      </div>
+
+      <!-- compare with daily goal -->
+      <div class="sec-lbl" style="margin-top:4px">vs. daily goal</div>
+      <div class="section-bg">
+        <div class="compare-goal-wrap" id="compare-goal-wrap"></div>
+      </div>
+
+      <!-- vitamins & minerals -->
+      <div class="sec-lbl">Vitamins & minerals</div>
+      <div class="vit-grid" id="vit-grid"></div>
+
+    </div>
+  </div>
+
+  <!-- ③ DIARY -->
+  <div class="screen" id="screen-diary">
+    <div class="screen-title">Diary</div>
+    <div class="screen-sub" id="diary-date-sub">Today's intake</div>
+
+    <!-- calorie ring -->
+    <div class="section-bg calorie-ring-card" style="margin-bottom:14px">
+      <div class="ring-wrap">
+        <svg width="72" height="72" viewBox="0 0 72 72">
+          <circle cx="36" cy="36" r="29" fill="none" stroke="#ececea" stroke-width="7"/>
+          <circle cx="36" cy="36" r="29" fill="none" stroke="#3B6D11" stroke-width="7"
+            stroke-dasharray="182 0" stroke-linecap="round"
+            transform="rotate(-90 36 36)"
+            id="ring-circle" style="transition: stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)"/>
+        </svg>
+        <div class="ring-center">
+          <div class="ring-pct" id="ring-pct">0%</div>
+          <div class="ring-lbl">of goal</div>
+        </div>
+      </div>
+      <div class="ring-info">
+        <div class="ring-big"><span id="total-kcal">0</span> <span>kcal</span></div>
+        <div class="ring-remaining" id="ring-remaining">1,800 remaining</div>
+      </div>
+    </div>
+
+    <!-- macro summary -->
+    <div class="macro-summary">
+      <div class="summary-pill"><div class="summary-v" id="total-carbs">0g</div><div class="summary-l">Carbs</div></div>
+      <div class="summary-pill"><div class="summary-v" id="total-protein">0g</div><div class="summary-l">Protein</div></div>
+      <div class="summary-pill"><div class="summary-v" id="total-fat">0g</div><div class="summary-l">Fat</div></div>
+    </div>
+
+    <div class="sec-lbl">This week</div>
+    <div class="week-grid" id="week-grid" style="margin-bottom:16px"></div>
+    <!-- budget tracker -->
+    <div class="sec-lbl">Food budget</div>
+    <div class="section-bg" style="margin-bottom:14px;display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:1rem;font-weight:700;color:var(--text);" id="budget-spent">$0.00</div>
+          <div style="font-size:0.72rem;color:var(--hint);">of <span id="budget-goal-lbl">$20.00</span> daily budget</div>
+        </div>
+        <div style="font-size:1.5rem;font-weight:800;color:var(--green);font-family:'Fraunces',serif;" id="budget-pct">0%</div>
+      </div>
+      <div style="height:8px;background:var(--off);border-radius:99px;overflow:hidden;">
+        <div id="budget-bar" style="height:100%;background:var(--green);border-radius:99px;width:0%;transition:width 0.7s ease;"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="budget-input" type="number" placeholder="Daily budget $" min="0" step="0.5"
+          style="flex:1;background:var(--off);border:1.5px solid var(--border2);border-radius:10px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:0.85rem;color:var(--text);outline:none;"/>
+        <button class="btn-primary" style="width:auto;padding:0 16px;height:38px;" onclick="saveBudget()">Set</button>
+      </div>
+    </div>
+     <!-- protein distribution -->
+    <div class="sec-lbl">Protein distribution</div>
+    <div class="section-bg" style="margin-bottom:14px;" id="protein-dist-wrap">
+      <div style="font-size:0.78rem;color:var(--hint);text-align:center;padding:8px 0;">Log meals to see protein distribution</div>
+    </div>
+    <div class="sec-lbl">Logged meals</div>
+    <div class="diary-actions">
+      <input class="diary-search" id="diary-search" type="text" placeholder="Search meals…"/>
+      <button class="clear-all-btn" onclick="confirmClearAll()">Clear all</button>
+    </div>
+    <div id="diary-list"><div class="empty-diary">No meals logged yet — scan some food!</div></div>
+  </div>
+
+ 
+  <!-- ④ AI -->
+  <div class="screen" id="screen-insights">
+    <div class="screen-title">Insights</div>
+    <div class="screen-sub">Your stats & AI analysis</div>
+
+    <!-- weekly calorie chart -->
+    <div class="sec-lbl">Calories this week</div>
+    <div class="section-bg" style="margin-bottom:14px;">
+      <canvas id="chart-calories" height="160"></canvas>
+    </div>
+
+    <!-- macro breakdown chart -->
+    <div class="sec-lbl">Today's macros</div>
+    <div class="section-bg" style="margin-bottom:14px;display:flex;align-items:center;gap:16px;">
+      <canvas id="chart-macros" width="120" height="120" style="flex-shrink:0;"></canvas>
+      <div id="macro-legend" style="display:flex;flex-direction:column;gap:8px;flex:1;"></div>
+    </div>
+
+    <!-- weekly score -->
+    <div class="sec-lbl">Weekly nutrition score</div>
+    <div class="section-bg" id="weekly-score-wrap" style="text-align:center;padding:20px;margin-bottom:14px;">
+      <div style="font-family:'Fraunces',serif;font-size:3rem;font-weight:700;color:var(--green);" id="weekly-score">—</div>
+      <div style="font-size:0.75rem;color:var(--hint);margin-top:4px;" id="weekly-score-lbl">Log meals to see your score</div>
+    </div>
+
+    <!-- eating patterns -->
+    <div class="sec-lbl">Eating patterns</div>
+    <div class="section-bg" style="margin-bottom:14px;" id="eating-patterns-wrap">
+      <div class="ai-loading"><div class="spinner"></div><span>Analyzing your patterns…</span></div>
+    </div>
+
+    <!-- AI insight -->
+    <div class="sec-lbl">Today's tip</div>
+    <div class="section-bg" style="margin-bottom:14px">
+      <div class="ai-badge"><div class="ai-dot"></div><div class="ai-badge-txt">Nutrition insight</div></div>
+      <div id="ai-insight-body">
+        <div class="ai-loading"><div class="spinner"></div><span>Generating insight…</span></div>
+      </div>
+    </div>
+
+    <div class="sec-lbl">Your device</div>
+    <div class="section-bg-soft" id="device-card">
+      <div class="device-row"><span class="device-k">Battery</span><span class="device-v" id="d-battery">—</span></div>
+      <div class="device-row"><span class="device-k">RAM</span><span class="device-v" id="d-ram">—</span></div>
+      <div class="device-row"><span class="device-k">Network</span><span class="device-v" id="d-network">—</span></div>
+      <div class="device-row"><span class="device-k">Screen</span><span class="device-v" id="d-screen">—</span></div>
+      <div class="device-row"><span class="device-k">CPU cores</span><span class="device-v" id="d-cpu">—</span></div>
+      <div class="device-row"><span class="device-k">Platform</span><span class="device-v" id="d-os">—</span></div>
+    </div>
+  </div>
+
+
+  
+
+  <!-- ⑤ PROFILE -->
+  <div class="screen" id="screen-profile">
+    <div class="screen-title">Profile</div>
+    <div class="screen-sub">Your personal settings</div>
+
+    <div class="section-bg" style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+      <div style="width:52px;height:52px;border-radius:50%;background:var(--green-l);border:2px solid var(--green);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">🥗</div>
+      <div style="flex:1;">
+        <input id="p-name" type="text" placeholder="Your name" style="width:100%;background:transparent;border:none;border-bottom:1.5px solid var(--border2);padding:4px 0;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:600;color:var(--text);outline:none;" oninput="saveProfile()"/>
+        <div style="font-size:0.7rem;color:var(--hint);margin-top:3px;" id="p-bmi-label">Enter your details below</div>
+      </div>
+      <button onclick="toggleFavoritesSection()" style="background:var(--green-l);border:1.5px solid var(--green);border-radius:10px;padding:6px 10px;font-size:0.75rem;font-weight:600;color:var(--green);cursor:pointer;white-space:nowrap;">❤️ Saved</button>
+    </div>
+
+    <!-- FAVORITES SECTION (inline) -->
+    <div id="favorites-section" style="display:none;margin-bottom:14px;">
+      <div class="sec-lbl">Saved foods</div>
+      <div id="favorites-list"></div>
+    </div>
+
+    <div class="sec-lbl">Body stats</div>
+    <div class="section-bg" style="display:flex;flex-direction:column;gap:12px;margin-bottom:14px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <div style="font-size:0.65rem;color:var(--hint);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">Age</div>
+          <input id="p-age" type="number" placeholder="25" min="1" max="120" style="width:100%;background:var(--off);border:1.5px solid var(--border2);border-radius:10px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:600;color:var(--text);outline:none;" oninput="saveProfile();recalcGoals()"/>
+        </div>
+        <div>
+          <div style="font-size:0.65rem;color:var(--hint);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">Gender</div>
+          <select id="p-gender" onchange="saveProfile();recalcGoals()" style="width:100%;background:var(--off);border:1.5px solid var(--border2);border-radius:10px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:600;color:var(--text);outline:none;">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 80px;gap:8px;">
+        <div>
+          <div style="font-size:0.65rem;color:var(--hint);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">Height</div>
+          <input id="p-height" type="number" placeholder="170" min="50" max="300" style="width:100%;background:var(--off);border:1.5px solid var(--border2);border-radius:10px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:600;color:var(--text);outline:none;" oninput="saveProfile();recalcGoals()"/>
+        </div>
+        <div>
+          <div style="font-size:0.65rem;color:var(--hint);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">Unit</div>
+          <select id="p-height-unit" onchange="saveProfile();recalcGoals()" style="width:100%;background:var(--off);border:1.5px solid var(--border2);border-radius:10px;padding:9px 8px;font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--text);outline:none;">
+            <option value="cm">cm</option>
+            <option value="ft">ft</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 80px;gap:8px;">
+        <div>
+          <div style="font-size:0.65rem;color:var(--hint);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">Weight</div>
+          <input id="p-weight" type="number" placeholder="70" min="1" max="500" style="width:100%;background:var(--off);border:1.5px solid var(--border2);border-radius:10px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:600;color:var(--text);outline:none;" oninput="saveProfile();recalcGoals()"/>
+        </div>
+        <div>
+          <div style="font-size:0.65rem;color:var(--hint);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">Unit</div>
+          <select id="p-weight-unit" onchange="saveProfile();recalcGoals()" style="width:100%;background:var(--off);border:1.5px solid var(--border2);border-radius:10px;padding:9px 8px;font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--text);outline:none;">
+            <option value="kg">kg</option>
+            <option value="lb">lb</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-lbl">Goal & activity</div>
+    <div class="section-bg" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="unit-btn active" data-goal="lose" onclick="selectGoal(this)">Lose weight</button>
+        <button class="unit-btn" data-goal="maintain" onclick="selectGoal(this)">Maintain</button>
+        <button class="unit-btn" data-goal="gain" onclick="selectGoal(this)">Gain muscle</button>
+      </div>
+      <select id="p-activity" onchange="saveProfile();recalcGoals()" style="width:100%;background:var(--off);border:1.5px solid var(--border2);border-radius:10px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--text);outline:none;">
+        <option value="1.2">Sedentary (no exercise)</option>
+        <option value="1.375">Lightly active (1-3 days/week)</option>
+        <option value="1.55" selected>Moderately active (3-5 days/week)</option>
+        <option value="1.725">Very active (6-7 days/week)</option>
+        <option value="1.9">Extremely active (athlete)</option>
+      </select>
+    </div>
+
+    <div class="sec-lbl">Your calculated goals</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+      <div class="summary-pill"><div class="summary-v" id="g-calories">—</div><div class="summary-l">Daily kcal</div></div>
+      <div class="summary-pill"><div class="summary-v" id="g-protein">—</div><div class="summary-l">Protein goal</div></div>
+      <div class="summary-pill"><div class="summary-v" id="g-bmi">—</div><div class="summary-l">BMI</div></div>
+      <div class="summary-pill"><div class="summary-v" id="g-ideal">—</div><div class="summary-l">Ideal weight</div></div>
+    </div>
+
+    <div class="sec-lbl">Water intake today</div>
+    <div class="section-bg" style="display:flex;flex-direction:column;gap:12px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:1rem;font-weight:700;color:var(--text);" id="water-consumed">0 ml</div>
+          <div style="font-size:0.72rem;color:var(--hint);">of <span id="water-goal-lbl">2,000 ml</span> recommended</div>
+        </div>
+        <div style="font-size:1.5rem;font-weight:800;color:var(--green);font-family:'Fraunces',serif;" id="water-pct">0%</div>
+      </div>
+      <div style="height:8px;background:var(--off);border-radius:99px;overflow:hidden;">
+        <div id="water-bar" style="height:100%;background:var(--green);border-radius:99px;width:0%;transition:width 0.7s ease;"></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="unit-btn" onclick="addWater(150)">+150 ml</button>
+        <button class="unit-btn" onclick="addWater(250)">+250 ml</button>
+        <button class="unit-btn" onclick="addWater(330)">+330 ml</button>
+        <button class="unit-btn" onclick="addWater(500)">+500 ml</button>
+        <button class="unit-btn" style="border-color:#fcd8d8;color:var(--red);" onclick="resetWater()">Reset</button>
+      </div>
+      <div style="font-size:0.75rem;color:var(--sub);line-height:1.6;" id="water-tip">Fill in your details above to get a personalized water goal.</div>
+    </div>
+
+    <div class="sec-lbl">Logging streak</div>
+    <div class="section-bg" style="display:flex;align-items:center;gap:14px;">
+      <div style="font-size:2.4rem;font-weight:800;color:var(--green);font-family:'Fraunces',serif;line-height:1;" id="streak-num">0</div>
+      <div>
+        <div style="font-size:0.88rem;font-weight:600;color:var(--text);">days in a row 🔥</div>
+        <div style="font-size:0.72rem;color:var(--hint);margin-top:3px;" id="streak-msg">Log food daily to build your streak!</div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- ⑧ BARCODE -->
+
+
+
+<!-- ⑨ MEAL PLANNER -->
+<div class="screen" id="screen-meal">
+  <div class="screen-title">Meal planner</div>
+  <div class="screen-sub">Get AI meal suggestions</div>
+
+  <!-- calorie target -->
+  <div class="sec-lbl">Calorie target</div>
+  <div class="section-bg" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input id="meal-cal-target" type="number" placeholder="e.g. 500" min="50" max="2000"
+        style="flex:1;background:var(--white);border:1.5px solid var(--border2);border-radius:10px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:0.95rem;font-weight:700;color:var(--text);outline:none;"/>
+      <span style="font-size:0.78rem;color:var(--hint);">kcal</span>
+    </div>
+    <!-- quick presets -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <button class="unit-btn" onclick="document.getElementById('meal-cal-target').value=300">300</button>
+      <button class="unit-btn" onclick="document.getElementById('meal-cal-target').value=400">400</button>
+      <button class="unit-btn" onclick="document.getElementById('meal-cal-target').value=500">500</button>
+      <button class="unit-btn" onclick="document.getElementById('meal-cal-target').value=600">600</button>
+      <button class="unit-btn" onclick="document.getElementById('meal-cal-target').value=800">800</button>
+    </div>
+  </div>
+
+  <!-- ingredients -->
+  <div class="sec-lbl">Ingredients (optional)</div>
+  <div class="section-bg" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
+    <input id="meal-ingredients" type="text" placeholder="e.g. chicken, rice, tomato…"
+      style="width:100%;background:var(--white);border:1.5px solid var(--border2);border-radius:10px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:0.85rem;color:var(--text);outline:none;"/>
+    <div style="font-size:0.72rem;color:var(--hint);">Leave empty for random suggestions</div>
+  </div>
+
+  <!-- cuisine preference -->
+  <div class="sec-lbl">Cuisine (optional)</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+    <button class="unit-btn active" data-cuisine="any" onclick="selectCuisine(this)">Any</button>
+    <button class="unit-btn" data-cuisine="mediterranean" onclick="selectCuisine(this)">Mediterranean</button>
+    <button class="unit-btn" data-cuisine="asian" onclick="selectCuisine(this)">Asian</button>
+    <button class="unit-btn" data-cuisine="american" onclick="selectCuisine(this)">American</button>
+    <button class="unit-btn" data-cuisine="middle eastern" onclick="selectCuisine(this)">Middle Eastern</button>
+  </div>
+
+  <button class="btn-primary" id="meal-suggest-btn" onclick="generateMealSuggestions()">✦ Generate suggestions</button>
+
+  <div class="status-bar" id="meal-status" style="margin-top:14px;display:none;">
+    <div class="spinner"></div>
+    <div class="status-txt">Generating meal ideas…</div>
+  </div>
+
+  <!-- results -->
+  <div id="meal-suggestions-result" style="margin-top:14px;"></div>
+</div>
+
+
+
+
+  
+
+</div>
+
+
+<!-- BOTTOM NAV -->
+<nav class="bnav">
+  <div class="nav-item active" data-screen="scan" onclick="switchTab(this)">
+    <div class="nav-icon">
+      <svg class="nav-svg" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="3"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/><circle cx="12" cy="14" r="3"/></svg>
+    </div>
+    <div class="nav-lbl">Scan</div>
+  </div>
+  <div class="nav-item" data-screen="diary" onclick="switchTab(this)">
+    <div class="nav-icon">
+      <svg class="nav-svg" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
+    </div>
+    <div class="nav-lbl">Diary</div>
+  </div>
+  <div class="nav-item" data-screen="meal" onclick="switchTab(this)">
+    <div class="nav-icon">
+      <svg class="nav-svg" viewBox="0 0 24 24"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+    </div>
+    <div class="nav-lbl">Meals</div>
+  </div>
+  <div class="nav-item" data-screen="insights" onclick="switchTab(this)">
+    <div class="nav-icon">
+      <svg class="nav-svg" viewBox="0 0 24 24"><polyline points="22 20 22 10 12 3 2 10 2 20"/><rect x="9" y="14" width="6" height="6"/></svg>
+    </div>
+    <div class="nav-lbl">Insights</div>
+  </div>
+  <div class="nav-item" data-screen="profile" onclick="switchTab(this)">
+    <div class="nav-icon">
+      <svg class="nav-svg" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    </div>
+    <div class="nav-lbl">Profile</div>
+  </div>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<!-- confetti -->
+<div class="confetti-wrap" id="confetti-wrap"></div>
+
+<!-- clear all modal -->
+<div class="modal-backdrop" id="clear-modal">
+  <div class="modal-box">
+    <div class="modal-title">Clear all meals?</div>
+    <div class="modal-sub">This will remove all logged meals for today. This action cannot be undone.</div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeClearModal()">Cancel</button>
+      <button class="modal-confirm" onclick="clearAllMeals()">Clear all</button>
+    </div>
+  </div>
+</div>
+
+<!-- THREE.JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+
+
+</script>
+</body>
+</html>
