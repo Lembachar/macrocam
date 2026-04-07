@@ -124,3 +124,29 @@ The app uses localStorage for all data — diary, profile, favorites, water trac
 Gemini responses are cached where possible to reduce API calls
 Image compression to 512px before sending to Gemini reduces quota usage significantly
 Rate limit handling built in — shows countdown timer when quota is hit
+
+
+add also community , like insta and tiktok , meaning the person has a profile with followers and so on , u can update ur progress and people can reat to ur posts
+-> link spotify to start music 
+
+
+
+
+
+Shipped a bunch of new features on MacroCam this week — and learned a lot doing it.
+
+MacroCam is a PWA I'm building that uses AI to identify food from a photo and return full nutrition data instantly.
+
+What's new:
+→ AI food scanner powered by Gemini — point your camera, get calories, macros, and micronutrients in seconds
+→ Meal planner that actually solves "what do I eat" — set a calorie target, pick a cuisine, choose meals only or shakes only, and get 3 AI-generated suggestions with full recipes and steps
+→ Multi-model fallback architecture (Gemini 2.5 → 2.0 → 1.5) so the app never dies on rate limits
+→ Serverless proxy via Netlify Functions to keep API keys off the client
+
+The meal planner was the most satisfying to build — turns a daily frustration into a 10-second decision.
+
+Still rough around the edges — bugs exist, UX has room to grow. If you try it and find something broken or have a suggestion, I genuinely want to hear it.
+
+🔗 macrocam.netlify.app
+
+#buildinpublic #webdev #javascript #AI #PWA

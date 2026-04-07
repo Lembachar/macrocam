@@ -2,19 +2,19 @@
 
     :root {
       --white:   #ffffff;
-      --off:     #f5f5f2;
+      --off:     #f7f6f3;
       --off2:    #fafaf8;
-      --border:  #ececea;
-      --border2: #e4e4e0;
-      --green:   #3B6D11;
-      --green-l: #f0f7eb;
-      --green-m: #639922;
-      --text:    #111111;
-      --sub:     #888888;
-      --hint:    #bbbbbb;
-      --red:     #d94f4f;
-      --nav-h:   68px;
-      --radius:  18px;
+      --border:  #eceae6;
+      --border2: #e2e0db;
+      --green:   #3d7a14;
+      --green-l: #eaf4e1;
+      --green-m: #4e9018;
+      --text:    #0f0f0f;
+      --sub:     #6b6b6b;
+      --hint:    #a8a8a8;
+      --red:     #c94040;
+      --nav-h:   72px;
+      --radius:  20px;
     }
 
     html, body { height: 100%; overflow: hidden; }
@@ -37,6 +37,8 @@
       justify-content: space-between;
       padding: 14px 20px 10px;
       background: var(--white);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border);
     }
 
@@ -68,7 +70,7 @@
       opacity: 0;
       pointer-events: none;
       transform: translateY(10px);
-      transition: opacity 0.22s ease, transform 0.22s ease;
+      transition: opacity 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       -webkit-overflow-scrolling: touch;
     }
 
@@ -79,7 +81,7 @@
     .bnav {
       flex-shrink: 0;
       height: var(--nav-h);
-      background: rgba(255,255,255,0.94);
+      background: var(--white);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-top: 1px solid var(--border);
@@ -93,10 +95,11 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
       cursor: pointer;
-      padding: 6px 0;
-      transition: color 0.2s;
+      padding: 6px 4px;
+      border-radius: 14px;
+      transition: all 0.2s;
     }
 
     .nav-icon {
@@ -108,7 +111,8 @@
       transition: background 0.2s;
     }
 
-    .nav-item.active .nav-icon { background: var(--green-l); }
+    .nav-item.active .nav-icon { background: transparent; }
+    .nav-item.active { background: var(--green-l); border-radius: 14px; }
 
     .nav-svg {
       width: 16px; height: 16px;
@@ -135,10 +139,10 @@
     /* ── SHARED COMPONENTS ── */
     .screen-title {
       font-family: 'Fraunces', serif;
-      font-size: 1.5rem;
+      font-size: 1.75rem;
       font-weight: 700;
       color: var(--text);
-      letter-spacing: -0.02em;
+      letter-spacing: -0.03em;
       margin-bottom: 4px;
     }
 
@@ -151,7 +155,7 @@
     .section-bg {
       background: var(--off);
       border-radius: var(--radius);
-      padding: 14px;
+      padding: 16px;
     }
 
     .section-bg-soft {
@@ -166,8 +170,8 @@
       background: var(--green);
       color: #fff;
       border: none;
-      border-radius: 14px;
-      padding: 14px;
+      border-radius: 16px;
+      padding: 16px;
       font-family: 'DM Sans', sans-serif;
       font-size: 0.9rem;
       font-weight: 600;
@@ -177,7 +181,7 @@
     }
 
     .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
-    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 
     .btn-outline {
       width: 100%;
@@ -202,7 +206,8 @@
     ══════════════ */
 
     .cam-box {
-      background: var(--off);
+      background: #dff0d2;
+      border: 1.5px solid #b8dba0;
       border-radius: 22px;
       height: 260px;
       display: flex;
@@ -403,12 +408,13 @@
     .macro-card {
       background: var(--off);
       border-radius: 14px;
-      padding: 10px 6px;
+      padding: 12px 8px;
       text-align: center;
+      border: 1px solid var(--border);
     }
 
     .macro-val {
-      font-size: 1rem;
+      font-size: 1.1rem;
       font-weight: 700;
       color: var(--text);
       line-height: 1;
@@ -431,7 +437,7 @@
     .bar-pct  { font-size: 0.75rem; color: var(--green); font-weight: 700; }
 
     .bar-track {
-      height: 6px;
+      height: 8px;
       background: var(--off);
       border-radius: 99px;
       overflow: hidden;
@@ -490,11 +496,11 @@
 
     .ring-big {
       font-family: 'Fraunces', serif;
-      font-size: 1.6rem;
+      font-size: 1.9rem;
       font-weight: 700;
       color: var(--text);
       line-height: 1;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.03em;
     }
 
     .ring-big span { font-size: 0.8rem; font-family: 'DM Sans', sans-serif; font-weight: 400; color: var(--hint); }
@@ -518,9 +524,9 @@
       justify-content: space-between;
       background: var(--white);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 12px;
-      margin-bottom: 6px;
+      border-radius: 16px;
+      padding: 13px 14px;
+      margin-bottom: 8px;
       animation: fadeUp 0.3s ease both;
     }
 
@@ -560,14 +566,14 @@
     }
 
     .summary-pill {
-      background: var(--off2);
+      background: var(--off);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 8px;
+      border-radius: 14px;
+      padding: 12px 8px;
       text-align: center;
     }
 
-    .summary-v { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+    .summary-v { font-size: 1rem; font-weight: 700; color: var(--text); }
     .summary-l { font-size: 0.62rem; color: var(--hint); margin-top: 2px; }
 
     /* ══════════════
@@ -618,15 +624,15 @@
     /* error toast */
     .toast {
       position: fixed;
-      bottom: calc(var(--nav-h) + 16px);
+      bottom: calc(var(--nav-h) + 20px);
       left: 50%;
       transform: translateX(-50%) translateY(20px);
-      background: #222;
+      background: #1a1a1a;
       color: #fff;
       font-size: 0.78rem;
       font-weight: 500;
-      padding: 10px 18px;
-      border-radius: 20px;
+      padding: 11px 20px;
+      border-radius: 99px;
       opacity: 0;
       transition: opacity 0.3s, transform 0.3s;
       pointer-events: none;
@@ -698,7 +704,7 @@
     .week-day { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
     .week-bar-wrap { width: 100%; height: 60px; display: flex; align-items: flex-end; }
     .week-bar {
-      width: 100%; border-radius: 4px 4px 0 0; background: var(--off);
+      width: 100%; border-radius: 6px 6px 0 0; background: var(--off);
       border: 1px solid var(--border); transition: height 0.6s ease;
       min-height: 4px;
     }
@@ -730,13 +736,13 @@
     /* ── VITAMINS & MINERALS ── */
     .vit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
     .vit-pill {
-      background: var(--off2); border: 1px solid var(--border);
-      border-radius: 11px; padding: 8px 10px;
-      display: flex; flex-direction: column; gap: 3px;
+      background: var(--off); border: 1px solid var(--border);
+      border-radius: 14px; padding: 10px 12px;
+      display: flex; flex-direction: column; gap: 4px;
     }
     .vit-name { font-size: 0.65rem; color: var(--hint); }
     .vit-val { font-size: 0.82rem; font-weight: 700; color: var(--text); }
-    .vit-bar-track { height: 3px; background: var(--border); border-radius: 99px; overflow: hidden; margin-top: 2px; }
+    .vit-bar-track { height: 5px; background: var(--border); border-radius: 99px; overflow: hidden; margin-top: 4px; }
     .vit-bar-fill { height: 100%; border-radius: 99px; background: var(--green); transition: width 0.8s ease; }
 
     /* ── CONFETTI ── */
@@ -821,18 +827,18 @@
    DARK MODE
 ══════════════════════════════ */
 body.dark {
-  --white:   #111318;
-  --off:     #1a1d24;
-  --off2:    #16191f;
-  --border:  #2a2d36;
-  --border2: #353840;
-  --green:   #6abf3a;
-  --green-l: #1a2e10;
-  --green-m: #85cc50;
-  --text:    #eaeaf5;
-  --sub:     #9090aa;
-  --hint:    #55556a;
-  --red:     #ff5f5f;
+  --white:   #0e1012;
+  --off:     #181b21;
+  --off2:    #141619;
+  --border:  #252830;
+  --border2: #2e3139;
+  --green:   #5fb832;
+  --green-l: #162810;
+  --green-m: #72cc40;
+  --text:    #f0f0f8;
+  --sub:     #8888a0;
+  --hint:    #505065;
+  --red:     #ff5555;
 }
 
 /* dark mode toggle button */
@@ -871,8 +877,8 @@ body.dark {
   gap: 10px;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 12px;
+  border-radius: 16px;
+  padding: 13px 14px;
   margin-bottom: 8px;
   animation: fadeUp 0.2s ease both;
 }

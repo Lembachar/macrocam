@@ -41,7 +41,7 @@
         <div class="cam-icon-circle">
           <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="3"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/><circle cx="12" cy="14" r="3"/></svg>
         </div>
-        <div class="cam-hint-txt">Tap to take photo</div>
+        <div class="cam-hint-txt">Point at your food</div>
       </div>
       <div class="scan-line" id="scan-line"></div>
     </div>
@@ -513,7 +513,17 @@
     <button class="unit-btn" data-cuisine="middle eastern" onclick="selectCuisine(this)">Middle Eastern</button>
   </div>
 
+  <!-- meal type preference -->
+  <div class="sec-lbl">Type</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+    <button class="unit-btn active" data-mealtype="both" onclick="selectMealType(this)">🍽️ Meals + 🥤 Shakes</button>
+    <button class="unit-btn" data-mealtype="meal" onclick="selectMealType(this)">🍽️ Meals only</button>
+    <button class="unit-btn" data-mealtype="shake" onclick="selectMealType(this)">🥤 Shakes only</button>
+  </div>
+
   <button class="btn-primary" id="meal-suggest-btn" onclick="generateMealSuggestions()">✦ Generate suggestions</button>
+
+
 
   <div class="status-bar" id="meal-status" style="margin-top:14px;display:none;">
     <div class="spinner"></div>

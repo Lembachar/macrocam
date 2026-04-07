@@ -1652,13 +1652,21 @@ async function analyzeEatingPatterns() {
 // MEAL PLANNER
 // ══════════════════════════════
 let selectedCuisine = 'any';
+let selectedMealType = 'both';
 let lastMealSuggestions = null;
 
 function selectCuisine(btn) {
   document.querySelectorAll('[data-cuisine]').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   selectedCuisine = btn.dataset.cuisine;
-  lastMealSuggestions = null; // reset cache on cuisine change
+  lastMealSuggestions = null;
+}
+
+function selectMealType(btn) {
+  document.querySelectorAll('[data-mealtype]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedMealType = btn.dataset.mealtype;
+  lastMealSuggestions = null;
 }
 
 async function generateMealSuggestions() {
@@ -1666,7 +1674,7 @@ async function generateMealSuggestions() {
   if (!target || target < 50) { showToast('Enter a calorie target first!'); return; }
 
   // use cache if same target
-  if (lastMealSuggestions && lastMealSuggestions.target === target && lastMealSuggestions.cuisine === selectedCuisine) {
+ if (lastMealSuggestions && lastMealSuggestions.target === target && lastMealSuggestions.cuisine === selectedCuisine && lastMealSuggestions.type === selectedMealType) {
     renderMealSuggestions(lastMealSuggestions.data);
     return;
   }
@@ -1680,15 +1688,26 @@ async function generateMealSuggestions() {
   document.getElementById('meal-suggestions-result').innerHTML = '';
 
   try {
-    const prompt = `You are a nutritionist. Suggest exactly 3 meal options for someone targeting ${target} kcal for one meal. Give 2 solid meals and 1 shake/smoothie. ${cuisineText} ${ingredientText}. Each should be close to ${target} kcal.
+    const typeInstruction = selectedMealType === 'meal'
+      ? 'Suggest exactly 3 solid meals. No shakes or smoothies whatsoever.'
+      : selectedMealType === 'shake'
+      ? 'Suggest exactly 3 shakes or smoothies. No solid meals. Only use ingredients that make sense blended: fruits, milk, yogurt, protein powder, oats, nut butter, seeds.'
+      : 'Suggest 2 solid meals and 1 shake or smoothie. For the shake, only use ingredients that make sense blended — never put meat, rice, or savory foods in the shake.';
 
-Respond ONLY with this JSON array, no markdown:
-[
-  {"name":"meal name","type":"meal","calories":400,"protein":30,"carbs":40,"fat":12,"time":"20 min","ingredients":["item1","item2"],"steps":["step1","step2"]},
-  {"name":"meal name","type":"meal","calories":420,"protein":25,"carbs":45,"fat":14,"time":"15 min","ingredients":["item1","item2"],"steps":["step1","step2"]},
-  {"name":"shake name","type":"shake","calories":380,"protein":28,"carbs":35,"fat":10,"time":"5 min","ingredients":["item1","item2"],"steps":["step1","step2"]}
-]`;
+    const prompt = `You are a professional nutritionist. Suggest exactly 3 options for someone targeting ${target} kcal for one meal. ${typeInstruction} ${cuisineText} ${ingredientText}. Each option must be close to ${target} kcal.
 
+    Rules:
+    - ingredients must include exact quantities (e.g. "200g chicken breast", "1 cup cooked rice", "1 tbsp olive oil")
+    - steps must be clear and specific, not generic
+    - calories, protein, carbs, fat must be accurate and realistic
+    - all values are for the full meal as described
+
+    Respond ONLY with this JSON array, no markdown, no extra text:
+    [
+      {"name":"Grilled Chicken & Rice","type":"meal","calories":520,"protein":45,"carbs":52,"fat":11,"time":"25 min","ingredients":["200g chicken breast","1 cup cooked white rice","1 tbsp olive oil","salt and pepper to taste"],"steps":["Season chicken with salt and pepper","Heat oil in pan over medium-high heat","Cook chicken 6 min each side until golden","Serve over rice"]},
+      {"name":"Tuna Salad Bowl","type":"meal","calories":480,"protein":38,"carbs":44,"fat":13,"time":"10 min","ingredients":["150g canned tuna in water","1 cup mixed greens","1/2 avocado sliced","1 tbsp lemon juice","1 tsp olive oil"],"steps":["Drain tuna well","Arrange greens in bowl","Top with tuna and avocado","Drizzle with lemon juice and olive oil"]},
+      {"name":"Banana Protein Shake","type":"shake","calories":410,"protein":32,"carbs":50,"fat":8,"time":"5 min","ingredients":["1 large banana","250ml whole milk","1 scoop vanilla protein powder","1 tbsp peanut butter","handful of ice"],"steps":["Add all ingredients to blender","Blend on high for 45 seconds until smooth","Pour and serve immediately"]}
+    ]`;
     const raw = await callGroq([{ role: 'user', content: prompt }], 5000);
     if (!raw) { showToast('Could not generate suggestions. Try again.'); return; }
 
@@ -1698,7 +1717,7 @@ Respond ONLY with this JSON array, no markdown:
     const meals = JSON.parse(match[0]);
 
     // cache result
-    lastMealSuggestions = { target, cuisine: selectedCuisine, data: meals };
+    lastMealSuggestions = { target, cuisine: selectedCuisine, type: selectedMealType, data: meals };
     renderMealSuggestions(meals);
 
   } catch(err) {
