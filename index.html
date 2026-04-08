@@ -6,13 +6,13 @@
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
-  <title>NutriSnap</title>
+  <title>MacroCam</title>
   <link rel="stylesheet" href="style.css"/>
   <link rel="manifest" href="manifest.json"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <meta name="theme-color" content="#3B6D11"/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet"/>
-  <script defer src="nutrisnap.js"></script>
+  <script defer src="macrocam.js"></script>
 </head>
 <body>
 
@@ -29,10 +29,19 @@
 <div class="screens">
 
   <!-- ① SCAN -->
-  <div class="screen active" id="screen-scan">
+ <div class="screen active" id="screen-scan">
     <div class="screen-title">Scan food</div>
     <div class="screen-sub">Take a photo or upload to identify</div>
 
+    <!-- search on top -->
+    <div class="manual-wrap" style="position:relative;margin-bottom:16px;">
+      <input class="manual-input" id="manual-input" type="text" placeholder="🔍  Search any food…" autocomplete="off"/>
+      <div id="search-suggestions" style="display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--white);border:1.5px solid var(--border2);border-radius:14px;overflow:hidden;z-index:200;box-shadow:0 8px 30px rgba(0,0,0,0.1);"></div>
+    </div>
+
+    
+
+    <!-- camera box -->
     <div class="cam-box" id="cam-box" onclick="document.getElementById('camera-input').click()">
       <img class="cam-preview" id="cam-preview"/>
       <div class="cam-overlay" id="cam-overlay">
@@ -49,28 +58,21 @@
     <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none"/>
     <input type="file" id="gallery-input" accept="image/*" style="display:none"/>
 
-    <button class="btn-primary" id="analyze-btn" disabled>Analyze food</button>
-
-    <div class="or-row"><div class="or-line"></div><div class="or-txt">or</div><div class="or-line"></div></div>
-
-    <label class="btn-outline" for="gallery-input">Upload from gallery</label>
+    <!-- analyze + upload side by side -->
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="btn-primary" id="analyze-btn" disabled style="flex:1;">Analyze food</button>
+      <label for="gallery-input" class="btn-outline" style="flex:1;display:flex;align-items:center;justify-content:center;cursor:pointer;margin:0;">Upload</label>
+    </div>
 
     <div class="status-bar" id="status-bar" style="margin-top:14px">
       <div class="spinner"></div>
       <div class="status-txt" id="status-txt">Identifying food…</div>
     </div>
 
-    <div class="scan-counter">Scans today: <span id="scan-count">0</span> / 10</div>
+    
 
-    <div style="margin-top:16px">
-      <div class="sec-lbl">Or search manually</div>
-      <div class="manual-wrap" style="position:relative;">
-        <input class="manual-input" id="manual-input" type="text" placeholder="e.g. chicken, banana…" autocomplete="off"/>
-        <div id="search-suggestions" style="display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--white);border:1.5px solid var(--border2);border-radius:14px;overflow:hidden;z-index:200;box-shadow:0 8px 30px rgba(0,0,0,0.1);"></div>
-      </div>
-    </div>
-
-    <div class="or-row" style="margin-top:16px;"><div class="or-line"></div><div class="or-txt">or</div><div class="or-line"></div></div>
+    <!-- barcode -->
+    
 
     <!-- BARCODE SECTION (inline) -->
     <div id="barcode-section" style="display:none;margin-top:4px;">
@@ -102,6 +104,7 @@
     </div>
 
     <button class="btn-outline" id="barcode-toggle-btn" onclick="toggleBarcodeSection()" style="margin-top:12px;">📦 Scan barcode</button>
+    <div class="scan-counter" style="margin-top:10px;">Scans today: <span id="scan-count">0</span> / 10</div>
   </div>
 
   <!-- ② RESULT -->

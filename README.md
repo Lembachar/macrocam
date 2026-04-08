@@ -142,7 +142,7 @@ API keys stored server-side in Netlify environment variables — never exposed i
 
 
 <!--new ideas on the way--!>
-
+<-->
 
 add also community , like insta and tiktok , meaning the person has a profile with followers and so on , u can update ur progress and people can reat to ur posts
 -> link spotify to start music 
