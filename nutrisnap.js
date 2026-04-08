@@ -396,7 +396,7 @@ function showResult(food, resetPortion = true) {
   renderVitamins(food, p);
 
   // 3D — only re-init on fresh scan
-  if (resetPortion) init3D({ ...food, _healthColor: hs.color, _healthScore: hs.score });
+
   updateFavBtn();
 }
 
@@ -510,97 +510,7 @@ function renderVitaminGrid(data, grid) {
 }
 
 
-let threeRenderer, threeScene, threeCamera, threeObjects = [], threeAnimId;
 
-function init3D(food) {
-  const canvas = document.getElementById('three-canvas');
-  const wrap = canvas.parentElement;
-
-  if (threeRenderer) {
-    cancelAnimationFrame(threeAnimId);
-    threeRenderer.dispose();
-    threeObjects = [];
-  }
-
-  const W = wrap.clientWidth, H = wrap.clientHeight;
-  threeRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  threeRenderer.setSize(W, H);
-  threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  threeRenderer.setClearColor(0x000000, 0);
-
-  threeScene = new THREE.Scene();
-  threeCamera = new THREE.PerspectiveCamera(50, W / H, 0.1, 100);
-  threeCamera.position.z = 4.5;
-
-  threeScene.add(new THREE.AmbientLight(0xffffff, 0.5));
-  const dir = new THREE.DirectionalLight(0xffffff, 0.9);
-  dir.position.set(3, 5, 5);
-  threeScene.add(dir);
-
-  
-  const mainColor  = new THREE.Color(food._healthColor || 0x3B6D11);
-  const ringColor1 = new THREE.Color(0x97C459);
-  const ringColor2 = new THREE.Color(0xC0DD97);
-
- 
-  const scale = Math.min(Math.max((food.calories || 100) / 250, 0.5), 1.3);
-
- 
-  const sphere = new THREE.Mesh(
-    new THREE.SphereGeometry(scale, 64, 64),
-    new THREE.MeshPhongMaterial({ color: mainColor, shininess: 100, transparent: true, opacity: 0.88 })
-  );
-  threeScene.add(sphere);
-  threeObjects.push({ mesh: sphere, rx: 0.003, ry: 0.006 });
-
-
-  const carbPct = Math.min((food.carbs || 0) / 80, 1);
-  const carbRing = new THREE.Mesh(
-    new THREE.TorusGeometry(scale + 0.28, 0.04 + carbPct * 0.06, 16, 100),
-    new THREE.MeshPhongMaterial({ color: ringColor1, transparent: true, opacity: 0.75 })
-  );
-  carbRing.rotation.x = Math.PI / 3;
-  threeScene.add(carbRing);
-  threeObjects.push({ mesh: carbRing, rx: 0.002, ry: -0.004 });
-
-
-  const protPct = Math.min((food.protein || 0) / 40, 1);
-  const protRing = new THREE.Mesh(
-    new THREE.TorusGeometry(scale + 0.5, 0.03 + protPct * 0.05, 16, 100),
-    new THREE.MeshPhongMaterial({ color: ringColor2, transparent: true, opacity: 0.55 })
-  );
-  protRing.rotation.x = Math.PI / 6;
-  protRing.rotation.y = Math.PI / 4;
-  threeScene.add(protRing);
-  threeObjects.push({ mesh: protRing, rx: -0.004, ry: 0.003 });
-
-  const dotCount = Math.min(Math.max(Math.round((food.fiber || 2) * 1.5), 4), 16);
-  for (let i = 0; i < dotCount; i++) {
-    const size = Math.random() * 0.055 + 0.025;
-    const dot = new THREE.Mesh(
-      new THREE.SphereGeometry(size, 8, 8),
-      new THREE.MeshPhongMaterial({ color: i % 2 === 0 ? ringColor1 : ringColor2, transparent: true, opacity: Math.random() * 0.4 + 0.3 })
-    );
-    const angle = (i / dotCount) * Math.PI * 2;
-    const r = scale + 0.75 + Math.random() * 0.35;
-    dot.position.set(Math.cos(angle) * r, (Math.random() - 0.5) * 1.4, Math.sin(angle) * r);
-    threeScene.add(dot);
-    threeObjects.push({ mesh: dot, rx: (Math.random()-0.5)*0.008, ry: (Math.random()-0.5)*0.008, float: Math.random()*Math.PI*2, floatSpeed: 0.018+Math.random()*0.02 });
-  }
-
-  let t = 0;
-  function animate() {
-    threeAnimId = requestAnimationFrame(animate);
-    t += 0.01;
-    threeObjects.forEach(o => {
-      o.mesh.rotation.x += o.rx;
-      o.mesh.rotation.y += o.ry;
-      if (o.float !== undefined) o.mesh.position.y += Math.sin(t * o.floatSpeed + o.float) * 0.003;
-    });
-    threeRenderer.render(threeScene, threeCamera);
-  }
-  animate();
-}
 
 // ── MEAL CATEGORY PICKER ──
 let selectedCategory = 'breakfast';
