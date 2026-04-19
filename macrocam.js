@@ -63,7 +63,7 @@ function switchTab(el) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('screen-' + el.dataset.screen).classList.add('active');
-  if (el.dataset.screen === 'diary')     renderDiary();
+  if (el.dataset.screen === 'diary') { renderDiary(); loadDiaryLocation(); }
   if (el.dataset.screen === 'insights') { renderDashboard(); loadDeviceInfo(); loadAIInsight(); analyzeEatingPatterns(); }
   if (el.dataset.screen === 'profile')   loadProfile();
   if (el.dataset.screen === 'meal') { lastMealSuggestions = null; }
@@ -604,9 +604,7 @@ function renderDiary() {
   document.getElementById('ring-pct').textContent = pct + '%';
   const remaining = Math.max(getCalGoal() - totalKcal, 0);
   document.getElementById('ring-remaining').textContent = remaining.toLocaleString() + ' kcal remaining';
-  const circ = 2 * Math.PI * 29;
-  const dash = (pct / 100) * circ;
-  document.getElementById('ring-circle').style.strokeDasharray = `${dash} ${circ - dash}`;
+  drawRingCanvas(pct);
 
   // weekly bar chart
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -627,7 +625,11 @@ function renderDiary() {
       <div class="week-kcal">${dayKcal > 0 ? dayKcal : ''}</div>
     </div>`;
   }
-  weekGrid.innerHTML = weekHTML;
+  
+  const allBars = weekGrid.querySelectorAll('.week-bar');
+  let tallest = 4;
+  allBars.forEach(b => { const h = parseInt(b.style.height); if (h > tallest) tallest = h; });
+  weekGrid.querySelectorAll('.week-bar-wrap').forEach(w => w.style.height = tallest + 'px');
 
   // search filter
   const q = (document.getElementById('diary-search')?.value || '').toLowerCase().trim();
@@ -672,6 +674,64 @@ function renderDiary() {
 
   list.innerHTML = html;
 }
+
+
+function drawRingCanvas(pct) {
+  const canvas = document.getElementById('ring-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const cx = 36, cy = 36, r = 29, lw = 7;
+  const isDarkMode = document.body.classList.contains('dark');
+  const trackColor = isDarkMode ? '#2e3139' : '#ececea';
+  const fillColor = getComputedStyle(document.documentElement).getPropertyValue('--green').trim() || '#3B6D11';
+
+  ctx.clearRect(0, 0, 72, 72);
+
+  // background track
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+  ctx.strokeStyle = trackColor;
+  ctx.lineWidth = lw;
+  ctx.stroke();
+
+  // animated fill arc
+  const startAngle = -Math.PI / 2;
+  const endAngle = startAngle + (2 * Math.PI * Math.min(pct, 100) / 100);
+  const startPct = 0;
+  const duration = 900;
+  const startTime = performance.now();
+
+  function animate(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    const currentEnd = startAngle + (endAngle - startAngle) * ease;
+
+    ctx.clearRect(0, 0, 72, 72);
+
+    // track
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+    ctx.strokeStyle = trackColor;
+    ctx.lineWidth = lw;
+    ctx.stroke();
+
+    // fill
+    if (pct > 0) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, startAngle, currentEnd);
+      ctx.strokeStyle = fillColor;
+      ctx.lineWidth = lw;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+
+    if (progress < 1) requestAnimationFrame(animate);
+  }
+
+  requestAnimationFrame(animate);
+}
+
 
 function deleteMeal(id) {
   diary = diary.filter(e => e.id !== id);
@@ -1098,7 +1158,7 @@ function applyDark() {
   document.body.classList.toggle('dark', isDark);
   const btn = document.getElementById('dark-toggle');
   btn.innerHTML = isDark
-    ? '<i class="fa-solid fa-sun" style="color:#5fb832;font-size:1rem;"></i>'
+    ? '<i class="fa-regular fa-sun" style="color:#5fb832;font-size:1rem;"></i>'
     : '<i class="fa-solid fa-moon" style="color:#3d7a14;font-size:1rem;"></i>';
 
 }
@@ -1318,6 +1378,51 @@ function renderWeeklyScore() {
 
   document.getElementById('weekly-score').textContent = daysWithData ? score : '—';
   document.getElementById('weekly-score-lbl').textContent = lbl;
+  drawScoreCanvas(daysWithData ? score : 0);
+}
+
+function drawScoreCanvas(score) {
+  const canvas = document.getElementById('score-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const cx = 40, cy = 40, r = 32, lw = 8;
+  const isDarkMode = document.body.classList.contains('dark');
+  const trackColor = isDarkMode ? '#2e3139' : '#ececea';
+  const color = score >= 80 ? '#3d7a14' : score >= 60 ? '#e6a817' : score > 0 ? '#c94040' : '#ececea';
+
+  const startAngle = -Math.PI / 2;
+  const endAngle = startAngle + (2 * Math.PI * score / 100);
+  const duration = 900;
+  const startTime = performance.now();
+
+  function animate(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    const currentEnd = startAngle + (endAngle - startAngle) * ease;
+
+    ctx.clearRect(0, 0, 80, 80);
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+    ctx.strokeStyle = trackColor;
+    ctx.lineWidth = lw;
+    ctx.stroke();
+
+    if (score > 0) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, startAngle, currentEnd);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lw;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+
+    if (progress < 1) requestAnimationFrame(animate);
+  }
+
+  requestAnimationFrame(animate);
+
 }
 
 
@@ -1750,13 +1855,49 @@ function renderMealSuggestions(meals) {
 }
 
 
+// ══════════════════════════════
+// GEOLOCATION
+// ══════════════════════════════
+function loadDiaryLocation() {
+  const el = document.getElementById('diary-location-txt');
+  if (!el) return;
 
+  if (!navigator.geolocation) {
+    el.textContent = 'Location unavailable';
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const { latitude, longitude } = pos.coords;
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+        );
+        const data = await res.json();
+        const city = data.address.city || data.address.town || data.address.village || data.address.county || 'Unknown location';
+        const country = data.address.country || '';
+        el.textContent = `${city}, ${country}`;
+        localStorage.setItem('macrocam_last_location', `${city}, ${country}`);
+      } catch (e) {
+        const cached = localStorage.getItem('macrocam_last_location');
+        el.textContent = cached || 'Location unavailable';
+      }
+    },
+    () => {
+      const cached = localStorage.getItem('macrocam_last_location');
+      el.textContent = cached || 'Location unavailable';
+    },
+    { timeout: 8000, maximumAge: 300000 }
+  );
+}
 
 
 
 // ── INIT ──
 applyDark();
 renderDiary();
+loadDiaryLocation();
 updateScanCounter();
 loadProfile();
 if ('serviceWorker' in navigator) {

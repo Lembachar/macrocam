@@ -246,17 +246,15 @@
   <div class="screen" id="screen-diary">
     <div class="screen-title">Diary</div>
     <div class="screen-sub" id="diary-date-sub">Today's intake</div>
+    <div id="diary-location" style="font-size:0.72rem;color:var(--hint);margin-bottom:12px;display:flex;align-items:center;gap:5px;">
+      <i class="fa-solid fa-location-dot" style="color:var(--green);font-size:0.7rem;"></i>
+      <span id="diary-location-txt">Locating…</span>
+    </div>
 
     <!-- calorie ring -->
     <div class="section-bg calorie-ring-card" style="margin-bottom:14px">
       <div class="ring-wrap">
-        <svg width="72" height="72" viewBox="0 0 72 72">
-          <circle cx="36" cy="36" r="29" fill="none" stroke="#ececea" stroke-width="7"/>
-          <circle cx="36" cy="36" r="29" fill="none" stroke="#3B6D11" stroke-width="7"
-            stroke-dasharray="182 0" stroke-linecap="round"
-            transform="rotate(-90 36 36)"
-            id="ring-circle" style="transition: stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)"/>
-        </svg>
+        <canvas id="ring-canvas" width="72" height="72"></canvas>
         <div class="ring-center">
           <div class="ring-pct" id="ring-pct">0%</div>
           <div class="ring-lbl">of goal</div>
@@ -276,7 +274,7 @@
     </div>
 
     <div class="sec-lbl">This week</div>
-    <div class="week-grid" id="week-grid" style="margin-bottom:16px"></div>
+    <div class="week-grid" id="week-grid" style="margin-bottom:16px;align-items:flex-end;"></div>
     <!-- budget tracker -->
     <div class="sec-lbl">Food budget</div>
     <div class="section-bg" style="margin-bottom:14px;display:flex;flex-direction:column;gap:10px;">
@@ -329,10 +327,14 @@
     </div>
 
     <!-- weekly score -->
+    <!-- weekly score -->
     <div class="sec-lbl">Weekly nutrition score</div>
-    <div class="section-bg" id="weekly-score-wrap" style="text-align:center;padding:20px;margin-bottom:14px;">
-      <div style="font-family:'Fraunces',serif;font-size:3rem;font-weight:700;color:var(--green);" id="weekly-score">—</div>
-      <div style="font-size:0.75rem;color:var(--hint);margin-top:4px;" id="weekly-score-lbl">Log meals to see your score</div>
+    <div class="section-bg" id="weekly-score-wrap" style="display:flex;align-items:center;gap:16px;padding:16px;margin-bottom:14px;">
+      <canvas id="score-canvas" width="80" height="80" style="flex-shrink:0;"></canvas>
+      <div>
+        <div style="font-family:'Fraunces',serif;font-size:2.4rem;font-weight:700;color:var(--green);line-height:1;" id="weekly-score">—</div>
+        <div style="font-size:0.75rem;color:var(--hint);margin-top:4px;" id="weekly-score-lbl">Log meals to see your score</div>
+      </div>
     </div>
 
     <!-- eating patterns -->
