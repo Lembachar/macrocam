@@ -11,7 +11,7 @@
       --green-m: #4e9018;
       --text:    #0f0f0f;
       --sub:     #6b6b6b;
-      --hint:    #a8a8a8;
+      --hint:    #898989;
       --red:     #c94040;
       --nav-h:   72px;
       --radius:  20px;
@@ -849,7 +849,7 @@ body.dark {
   --green-m: #72cc40;
   --text:    #f0f0f8;
   --sub:     #8888a0;
-  --hint:    #505065;
+  --hint:    #888888;
   --red:     #ff5555;
 }
 
