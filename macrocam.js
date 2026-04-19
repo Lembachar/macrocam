@@ -2,18 +2,24 @@
 const CALORIE_GOAL = 1800;
 const getCalGoal = () => window.DYNAMIC_CALORIE_GOAL || CALORIE_GOAL;
 
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
 
 async function callGemini(body) {
   for (const model of GEMINI_MODELS) {
-    const res = await fetch('/.netlify/functions/gemini', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, payload: body })
-    });
-    const data = await res.json();
-    if (data.error?.code === 429) continue;
-    return data;
+    try {
+      const res = await fetch('/.netlify/functions/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, payload: body })
+      });
+      const text = await res.text();
+      if (!text || !text.trim()) continue;
+      const data = JSON.parse(text);
+      if (data.error?.code === 429 || data.error?.code >= 500) continue;
+      return data;
+    } catch(e) {
+      continue;
+    }
   }
   return { error: { code: 429, message: 'All models rate limited' } };
 }
@@ -45,7 +51,7 @@ let currentFood = null;
 let imageBase64 = null;
 let imageFile = null;
 let diary = JSON.parse(localStorage.getItem('nutrisnap_diary') || '[]');
-const TODAY = new Date().toDateString();
+const getToday = () => new Date().toDateString();
 
 
 document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
@@ -61,7 +67,7 @@ function switchTab(el) {
   if (el.dataset.screen === 'insights') { renderDashboard(); loadDeviceInfo(); loadAIInsight(); analyzeEatingPatterns(); }
   if (el.dataset.screen === 'profile')   loadProfile();
   if (el.dataset.screen === 'meal') { lastMealSuggestions = null; }
-  if (el.dataset.screen !== 'scan') { stopBarcodeScanner(); document.getElementById('barcode-section').style.display = 'none'; document.getElementById('barcode-toggle-btn').textContent = '📦 Scan barcode'; }
+  if (el.dataset.screen !== 'scan') { stopBarcodeScanner(); document.getElementById('barcode-section').style.display = 'none'; document.getElementById('barcode-toggle-btn').innerHTML = '<i class="fa-solid fa-barcode"></i> Scan barcode'; }
 
 }
 
@@ -69,6 +75,20 @@ function showResultScreen() {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-result').classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+}
+
+function goBackToScan() {
+  const preview = document.getElementById('cam-preview');
+  preview.src = '';
+  preview.classList.remove('show');
+  document.getElementById('cam-overlay').classList.remove('hidden');
+  document.getElementById('analyze-btn').disabled = true;
+  document.getElementById('analyze-btn').textContent = 'Analyze food';
+  document.getElementById('camera-input').value = '';
+  document.getElementById('gallery-input').value = '';
+  imageBase64 = null;
+  imageFile = null;
+  switchTab(document.querySelector('[data-screen="scan"]'));
 }
 
 
@@ -159,7 +179,7 @@ async function analyzeFood() {
   document.getElementById('status-txt').textContent = 'Analyzing food…';
 
   try {
-    const prompt = `Identify this food and return ONLY this JSON with no extra text:\n{\"name\":\"\",\"calories\":0,\"carbs\":0,\"protein\":0,\"fat\":0,\"fiber\":0,\"sugar\":0,\"serving\":\"\",\"ingredients\":[],\"vitaminC\":0,\"iron\":0,\"calcium\":0,\"potassium\":0}\nAll nutrition values must be per 100g. Numbers only, no units in values. For serving write the typical serving size. For ingredients list the main components e.g. [\"chicken\",\"rice\",\"tomato\"]. For vitamins and minerals provide accurate values per 100g: vitaminC in mg, iron in mg, calcium in mg, potassium in mg. If it is a complex meal with more than 3 ingredients set vitaminC, iron, calcium, potassium all to -1.`;
+    const prompt = `You are a nutrition expert analyzing a food photo. Estimate the portion size you see in the image and return ONLY this JSON with no extra text:\n{\"name\":\"\",\"calories\":0,\"carbs\":0,\"protein\":0,\"fat\":0,\"fiber\":0,\"sugar\":0,\"serving\":\"\",\"estimatedGrams\":0,\"ingredients\":[],\"vitaminC\":0,\"iron\":0,\"calcium\":0,\"potassium\":0}\nRules:\n- Estimate the actual portion visible in the photo (e.g. 1 apple ≈ 180g, a plate of rice ≈ 250g)\n- All nutrition values must be for the ESTIMATED portion shown, not per 100g\n- Set estimatedGrams to your best weight estimate in grams\n- For serving write a human description e.g. \"1 medium apple\" or \"1 plate of rice\"\n- Numbers only, no units in values\n- For ingredients list main components e.g. [\"chicken\",\"rice\",\"tomato\"]\n- For vitaminC, iron, calcium, potassium provide values in mg for the estimated portion\n- If complex meal with more than 3 ingredients set vitaminC, iron, calcium, potassium all to -1`;
 
     const data = await callGemini({
       contents: [{
@@ -168,7 +188,7 @@ async function analyzeFood() {
           { text: prompt }
         ]
       }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 800 }
+      generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
     });
     
     console.log('Gemini response:', JSON.stringify(data));
@@ -231,6 +251,9 @@ async function analyzeFood() {
 
     showResult(currentFood);
     insightLoaded = false;
+    incrementScanCounter();
+    const lastBtn = document.getElementById('last-result-btn');
+    if (lastBtn) lastBtn.style.display = 'block';
     showResultScreen();
 
   } catch(err) {
@@ -324,15 +347,22 @@ function getHealthScore(food) {
 // SHOW RESULT
 // ═══════════════════════════════
 function showResult(food, resetPortion = true) {
+  // hide portion selector for camera scans, show for manual/barcode/favorites
+  const portionSelector = document.getElementById('portion-selector');
+  if (portionSelector) {
+    portionSelector.style.display = imageBase64 ? 'none' : 'flex';
+  }
+
   if (resetPortion) {
+    const estimated = food.estimatedGrams || 100;
+    portionAmountG = estimated;
     portionMultiplier = 1;
-    portionAmountG = 100;
     selectedUnit = 'g';
     const amountEl = document.getElementById('portion-amount');
-    if (amountEl) amountEl.value = 100;
+    if (amountEl) amountEl.value = estimated;
     document.querySelectorAll('.unit-btn[data-unit]').forEach(b => b.classList.toggle('active', b.dataset.unit === 'g'));
     const convEl = document.getElementById('portion-converted');
-    if (convEl) convEl.textContent = '100g';
+    if (convEl) convEl.textContent = estimated + 'g';
   }
 
   document.getElementById('empty-result').style.display = 'none';
@@ -415,13 +445,14 @@ function animateCount(el, from, to, duration, formatter) {
 
 // ── COMPARE WITH DAILY GOAL ──
 function renderCompareGoal({ cal, carbs, protein, fat }) {
-  const todayEntries = diary.filter(e => e.date === TODAY);
+  const todayEntries = diary.filter(e => e.date === getToday());
   const usedKcal    = todayEntries.reduce((s, e) => s + (e.calories || 0), 0);
   const usedCarbs   = todayEntries.reduce((s, e) => s + (e.carbs || 0), 0);
   const usedProtein = todayEntries.reduce((s, e) => s + (e.protein || 0), 0);
   const usedFat     = todayEntries.reduce((s, e) => s + (e.fat || 0), 0);
 
-  const goals = { cal: CALORIE_GOAL, carbs: 250, protein: 50, fat: 70 };
+ const dynCal = getCalGoal();
+  const goals = { cal: dynCal, carbs: Math.round(dynCal * 0.45 / 4), protein: Math.round(dynCal * 0.25 / 4), fat: Math.round(dynCal * 0.30 / 9) };
   const items = [
     { name: 'Calories', used: usedKcal, add: cal, goal: goals.cal, unit: 'kcal' },
     { name: 'Carbs',    used: usedCarbs, add: carbs, goal: goals.carbs, unit: 'g' },
@@ -535,7 +566,7 @@ document.getElementById('log-btn').addEventListener('click', () => {
     fat:      Math.round((currentFood.fat || 0) * portionMultiplier * 10) / 10,
     id: Date.now(),
     time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-    date: TODAY,
+    date: getToday(),
     portion: portionMultiplier,
     category: selectedCategory,
     price: price
@@ -544,10 +575,12 @@ document.getElementById('log-btn').addEventListener('click', () => {
   localStorage.setItem('nutrisnap_diary', JSON.stringify(diary));
 
   // check if goal hit — trigger confetti
-  const totalAfter = diary.filter(e => e.date === TODAY).reduce((s, e) => s + (e.calories || 0), 0);
+  const totalAfter = diary.filter(e => e.date === getToday()).reduce((s, e) => s + (e.calories || 0), 0);
   const totalBefore = totalAfter - entry.calories;
   if (totalBefore < CALORIE_GOAL && totalAfter >= CALORIE_GOAL) launchConfetti();
 
+ imageBase64 = null;
+  imageFile = null;
   showToast(`${currentFood.name} logged! ✓`);
   switchTab(document.querySelector('[data-screen="diary"]'));
 });
@@ -556,7 +589,7 @@ document.getElementById('log-btn').addEventListener('click', () => {
 function renderDiary() {
   updateBudgetUI();
   renderProteinDistribution(); 
-  const todayEntries = diary.filter(e => e.date === TODAY);
+  const todayEntries = diary.filter(e => e.date === getToday());
   const totalKcal    = todayEntries.reduce((s, e) => s + (e.calories || 0), 0);
   const totalCarbs   = todayEntries.reduce((s, e) => s + (e.carbs || 0), 0);
   const totalProtein = todayEntries.reduce((s, e) => s + (e.protein || 0), 0);
@@ -678,7 +711,7 @@ let insightLoaded = false;
 async function loadAIInsight() {
   if (insightLoaded) return;
 
-  const todayEntries = diary.filter(e => e.date === TODAY);
+  const todayEntries = diary.filter(e => e.date === getToday());
   const body = document.getElementById('ai-insight-body');
 
   body.innerHTML = '<div class="ai-loading"><div class="spinner"></div><span>Generating insight…</span></div>';
@@ -772,12 +805,16 @@ async function fetchSuggestions(q) {
 
 function showSuggestions(items) {
   const box = document.getElementById('search-suggestions');
-  box.innerHTML = items.map(item => `
-    <div onclick="selectSuggestion('${item.replace(/'/g,"\\'")}') "
-      style="padding:11px 14px;font-size:0.82rem;color:var(--text);border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;"
-      onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
-      ${item}
-    </div>`).join('');
+  box.innerHTML = '';
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.textContent = item;
+    div.addEventListener('click', () => selectSuggestion(item));
+    div.style.cssText = 'padding:11px 14px;font-size:0.82rem;color:var(--text);border-bottom:1px solid var(--border);cursor:pointer;';
+    div.addEventListener('mouseover', () => div.style.background = 'var(--off)');
+    div.addEventListener('mouseout', () => div.style.background = '');
+    box.appendChild(div);
+  });
   box.style.display = 'block';
   suggestionsVisible = true;
 }
@@ -839,6 +876,8 @@ async function manualSearch(overrideQuery) {
     showResult(currentFood);
     insightLoaded = false;
     incrementScanCounter();
+    const lastBtn = document.getElementById('last-result-btn');
+    if (lastBtn) lastBtn.style.display = 'block';
     showResultScreen();
 
   } catch(err) {
@@ -853,7 +892,7 @@ async function manualSearch(overrideQuery) {
 // ═══════════════════════════════
 let profile = JSON.parse(localStorage.getItem('nutrisnap_profile') || '{}');
 let userGoal = profile.goal || 'maintain';
-let waterConsumed = parseInt(localStorage.getItem('nutrisnap_water_' + TODAY) || '0');
+let waterConsumed = parseInt(localStorage.getItem('nutrisnap_water_' + getToday()) || '0');
 
 function loadProfile() {
   if (profile.name)   document.getElementById('p-name').value = profile.name;
@@ -960,13 +999,13 @@ function recalcGoals() {
 // ── WATER TRACKER ──
 function addWater(ml) {
   waterConsumed += ml;
-  localStorage.setItem('nutrisnap_water_' + TODAY, waterConsumed);
+  localStorage.setItem('nutrisnap_water_' + getToday(), waterConsumed);
   updateWaterUI();
 }
 
 function resetWater() {
   waterConsumed = 0;
-  localStorage.setItem('nutrisnap_water_' + TODAY, 0);
+  localStorage.setItem('nutrisnap_water_' + getToday(), 0);
   updateWaterUI();
 }
 
@@ -981,12 +1020,12 @@ function updateWaterUI() {
 
 // ── STREAK ──
 function updateStreak() {
+  const dateSet = new Set(diary.map(e => e.date));
   let streak = 0;
   const d = new Date();
   for (let i = 0; i < 365; i++) {
     const ds = d.toDateString();
-    const hasEntry = diary.some(e => e.date === ds);
-    if (hasEntry) streak++;
+    if (dateSet.has(ds)) streak++;
     else if (i > 0) break;
     d.setDate(d.getDate() - 1);
   }
@@ -998,13 +1037,13 @@ function updateStreak() {
 }
 
 function updateScanCounter() {
-  const key = 'nutrisnap_scans_' + TODAY;
+  const key = 'nutrisnap_scans_' + getToday();
   const count = parseInt(localStorage.getItem(key) || '0');
   document.getElementById('scan-count').textContent = count;
 }
 
 function incrementScanCounter() {
-  const key = 'nutrisnap_scans_' + TODAY;
+  const key = 'nutrisnap_scans_' + getToday();
   const count = parseInt(localStorage.getItem(key) || '0') + 1;
   localStorage.setItem(key, count);
   updateScanCounter();
@@ -1017,13 +1056,15 @@ function incrementScanCounter() {
 function launchConfetti() {
   const wrap = document.getElementById('confetti-wrap');
   const colors = ['#3B6D11','#97C459','#d8ff47','#47ffc8','#f0f7eb','#639922','#ffcc00'];
-  for (let i = 0; i < 90; i++) {
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < 60; i++) {
     const el = document.createElement('div');
     el.className = 'confetti-piece';
     el.style.cssText = `left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};width:${4+Math.random()*8}px;height:${4+Math.random()*8}px;animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*0.6}s;border-radius:${Math.random()>0.5?'50%':'2px'};`;
-    wrap.appendChild(el);
-    el.addEventListener('animationend', () => el.remove());
+    el.addEventListener('animationend', () => el.remove(), { once: true });
+    frag.appendChild(el);
   }
+  wrap.appendChild(frag);
   showToast('🎉 Daily goal reached!');
 }
 
@@ -1031,7 +1072,7 @@ function launchConfetti() {
 function confirmClearAll() { document.getElementById('clear-modal').classList.add('show'); }
 function closeClearModal()  { document.getElementById('clear-modal').classList.remove('show'); }
 function clearAllMeals() {
-  diary = diary.filter(e => e.date !== TODAY);
+  diary = diary.filter(e => e.date !== getToday());
   localStorage.setItem('nutrisnap_diary', JSON.stringify(diary));
   closeClearModal();
   renderDiary();
@@ -1042,7 +1083,11 @@ document.getElementById('clear-modal').addEventListener('click', function(e) {
 });
 
 // ── DIARY SEARCH LIVE FILTER ──
-document.getElementById('diary-search').addEventListener('input', renderDiary);
+let searchDebounce;
+document.getElementById('diary-search').addEventListener('input', () => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(renderDiary, 150);
+});
 
 // ══════════════════════════════
 // DARK MODE
@@ -1051,9 +1096,12 @@ let isDark = localStorage.getItem('nutrisnap_dark') === '1';
 
 function applyDark() {
   document.body.classList.toggle('dark', isDark);
-  document.getElementById('dark-toggle').textContent = isDark ? '☀️' : '🌙';
-}
+  const btn = document.getElementById('dark-toggle');
+  btn.innerHTML = isDark
+    ? '<i class="fa-solid fa-sun" style="color:#5fb832;font-size:1rem;"></i>'
+    : '<i class="fa-solid fa-moon" style="color:#3d7a14;font-size:1rem;"></i>';
 
+}
 function toggleDark() {
   isDark = !isDark;
   localStorage.setItem('nutrisnap_dark', isDark ? '1' : '0');
@@ -1071,12 +1119,12 @@ function toggleFavorite() {
   const idx = favorites.findIndex(f => f.name.toLowerCase() === currentFood.name.toLowerCase());
   if (idx === -1) {
     favorites.unshift({ ...currentFood, savedAt: Date.now() });
-    btn.textContent = '❤️';
+    btn.innerHTML = '<i class="fa-solid fa-heart"></i>';
     btn.classList.add('saved');
     showToast(`${currentFood.name} saved to favorites!`);
   } else {
     favorites.splice(idx, 1);
-    btn.textContent = '🤍';
+    btn.innerHTML = '<i class="fa-regular fa-heart"></i>';
     btn.classList.remove('saved');
     showToast('Removed from favorites');
   }
@@ -1087,7 +1135,7 @@ function updateFavBtn() {
   if (!currentFood) return;
   const btn = document.getElementById('fav-btn');
   const saved = favorites.some(f => f.name.toLowerCase() === currentFood.name.toLowerCase());
-  btn.textContent = saved ? '❤️' : '🤍';
+  btn.innerHTML = saved ? '<i class="fa-solid fa-heart"></i>' : '<i class="fa-regular fa-heart"></i>';
   btn.classList.toggle('saved', saved);
 }
 
@@ -1119,6 +1167,7 @@ function logFavorite(idx) {
   currentFood = f;
   imageBase64 = null;
   showResult(f);
+  document.getElementById('last-result-btn').style.display = 'block';
   showResultScreen();
   showToast(`${f.name} loaded — tap Log to diary!`);
 }
@@ -1144,9 +1193,14 @@ function toggleFavoritesSection() {
 let chartCalories = null;
 let chartMacros = null;
 
+let dashboardDiaryLength = -1;
+
 function renderDashboard() {
-  renderCaloriesChart();
-  renderMacrosChart();
+  if (diary.length !== dashboardDiaryLength) {
+    renderCaloriesChart();
+    renderMacrosChart();
+    dashboardDiaryLength = diary.length;
+  }
   renderWeeklyScore();
 }
 
@@ -1203,7 +1257,7 @@ function renderCaloriesChart() {
 }
 
 function renderMacrosChart() {
-  const todayEntries = diary.filter(e => e.date === TODAY);
+  const todayEntries = diary.filter(e => e.date === getToday());
   const carbs   = todayEntries.reduce((s, e) => s + (e.carbs || 0), 0);
   const protein = todayEntries.reduce((s, e) => s + (e.protein || 0), 0);
   const fat     = todayEntries.reduce((s, e) => s + (e.fat || 0), 0);
@@ -1295,6 +1349,13 @@ async function startBarcodeScanner() {
     await video.play();
     barcodeScanning = true;
 
+    const scanTimeout = setTimeout(() => {
+      if (barcodeScanning) {
+        stopBarcodeScanner();
+        showToast('No barcode found. Try manual entry.');
+      }
+    }, 30000);
+
     const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
 
     async function scan() {
@@ -1303,6 +1364,7 @@ async function startBarcodeScanner() {
         const barcodes = await detector.detect(video);
         if (barcodes.length > 0) {
           const code = barcodes[0].rawValue;
+          clearTimeout(scanTimeout);
           stopBarcodeScanner();
           lookupBarcode(code);
           return;
@@ -1394,7 +1456,7 @@ function toggleBarcodeSection() {
   const btn = document.getElementById('barcode-toggle-btn');
   const visible = section.style.display !== 'none';
   section.style.display = visible ? 'none' : 'block';
-  btn.textContent = visible ? '📦 Scan barcode' : '✕ Close barcode';
+  btn.innerHTML = visible ? '<i class="fa-solid fa-barcode"></i> Scan barcode' : '<i class="fa-solid fa-xmark"></i> Close barcode';
   if (visible) stopBarcodeScanner();
 }
 
@@ -1420,7 +1482,7 @@ function saveBudget() {
 }
 
 function updateBudgetUI() {
-  const todayEntries = diary.filter(e => e.date === TODAY);
+  const todayEntries = diary.filter(e => e.date === getToday());
   const spent = todayEntries.reduce((s, e) => s + (e.price || 0), 0);
   const pct = Math.min(Math.round((spent / dailyBudget) * 100), 100);
 
@@ -1441,7 +1503,7 @@ function updateBudgetUI() {
 // PROTEIN DISTRIBUTION ANALYZER
 // ══════════════════════════════
 function renderProteinDistribution() {
-  const todayEntries = diary.filter(e => e.date === TODAY);
+  const todayEntries = diary.filter(e => e.date === getToday());
   const wrap = document.getElementById('protein-dist-wrap');
   if (!wrap) return;
 
@@ -1453,7 +1515,7 @@ function renderProteinDistribution() {
   const catOrder = ['breakfast','lunch','dinner','snack'];
   const catLabels = { breakfast:'Breakfast', lunch:'Lunch', dinner:'Dinner', snack:'Snack' };
   const totalProtein = todayEntries.reduce((s, e) => s + (e.protein || 0), 0);
-  const goal = 50; // default protein goal
+  
 
   // group protein by meal category
   const bycat = {};
@@ -1644,7 +1706,7 @@ function renderMealSuggestions(meals) {
   wrap.innerHTML = meals.map((m, i) => `
     <div class="section-bg" style="margin-bottom:12px;animation:fadeUp 0.3s ease ${i*0.1}s both;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-        <div style="font-size:1.5rem;">${m.type === 'shake' ? '🥤' : '🍽️'}</div>
+        <div style="font-size:1rem;color:var(--green);"><i class="fa-solid ${m.type === 'shake' ? 'fa-blender' : 'fa-bowl-food'}"></i></div>
         <div style="flex:1;">
           <div style="font-weight:700;color:var(--text);font-size:0.92rem;text-transform:capitalize;">${m.name}</div>
           <div style="font-size:0.7rem;color:var(--hint);margin-top:2px;">⏱ ${m.time} · ${m.type === 'shake' ? 'Shake' : 'Meal'}</div>

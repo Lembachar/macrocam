@@ -17,7 +17,17 @@
       --radius:  20px;
     }
 
-    html, body { height: 100%; overflow: hidden; }
+
+    @media (min-width: 500px) {
+      body { box-shadow: 0 0 0 1px var(--border); }
+      html { background: #f0f0f0; } /* or dark equivalent */
+    }
+    html { height: 100%; }
+    body {
+      height: 100%;
+      height: 100dvh; 
+      overflow: hidden;
+    }
 
     body {
       font-family: 'DM Sans', sans-serif;
@@ -72,6 +82,7 @@
       transform: translateY(10px);
       transition: opacity 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
     }
 
     .screen.active { opacity: 1; pointer-events: all; transform: translateY(0); }
@@ -99,7 +110,8 @@
       cursor: pointer;
       padding: 6px 4px;
       border-radius: 14px;
-      transition: all 0.2s;
+      transition: background 0.2s,color 0.2s;
+      
     }
 
     .nav-icon {
@@ -115,7 +127,7 @@
     .nav-item.active { background: var(--green-l); border-radius: 14px; }
 
     .nav-svg {
-      width: 16px; height: 16px;
+      width: 20px; height: 20px;
       fill: none;
       stroke-width: 1.8;
       stroke-linecap: round;
@@ -125,7 +137,17 @@
     }
 
     .nav-item.active .nav-svg { stroke: var(--green); }
+    .nav-item.active .nav-svg { stroke: var(--green); fill: none; }
+    .nav-svg { fill: none; stroke: var(--hint); }
+    .nav-item[data-screen="meal"] .nav-svg { fill: var(--hint); stroke: none; }
+    .nav-item[data-screen="meal"].active .nav-svg { fill: var(--green); stroke: none; }
 
+    .nav-fa {
+      font-size: 1.1rem;
+      color: var(--hint);
+      transition: color 0.2s;
+    }
+    .nav-item.active .nav-fa { color: var(--green); }
     .nav-lbl {
       font-size: 0.6rem;
       font-weight: 600;
@@ -257,6 +279,7 @@
       top: 20%;
       display: none;
       animation: scanMove 1.8s ease-in-out infinite;
+      will-change: top;
     }
 
     .scan-line.show { display: block; }
@@ -298,7 +321,6 @@
       background: var(--off);
       border-radius: 12px;
       padding: 12px 14px;
-      display: flex;
       align-items: center;
       gap: 10px;
       display: none;
@@ -449,6 +471,7 @@
       background: var(--green);
       width: 0%;
       transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: width;
     }
 
     
@@ -635,7 +658,7 @@
     .unit-btn {
       padding: 5px 11px; border-radius: 20px; font-size: 0.72rem; font-weight: 600;
       border: 1.5px solid var(--border2); background: var(--white); color: var(--sub);
-      cursor: pointer; transition: all 0.15s;
+      cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s;
     }
     .unit-btn.active { background: var(--green); border-color: var(--green); color: #fff; }
     .unit-btn:active { opacity: 0.8; }
@@ -715,7 +738,7 @@
     .cg-name { font-size: 0.72rem; color: var(--sub); font-weight: 500; }
     .cg-vals { font-size: 0.7rem; color: var(--hint); }
     .cg-vals span { color: var(--green); font-weight: 700; }
-    .cg-track { height: 7px; background: var(--off); border-radius: 99px; overflow: visible; position: relative; }
+    .cg-track { height: 7px; background: var(--off); border-radius: 99px; overflow: hidden; position: relative; }
     .cg-fill { height: 100%; border-radius: 99px; background: var(--green); transition: width 0.8s cubic-bezier(0.4,0,0.2,1); position: relative; }
     .cg-fill.over { background: var(--red); }
     .cg-fill.warn { background: #e6a817; }
@@ -740,6 +763,7 @@
     .confetti-piece {
       position: absolute; width: 8px; height: 8px; border-radius: 2px;
       animation: confettiFall linear forwards;
+      will-change: transform, opacity;
     }
     @keyframes confettiFall {
       0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
@@ -839,6 +863,7 @@ body.dark {
   display: flex; align-items: center; justify-content: center;
   font-size: 1rem;
   transition: background 0.2s;
+  color: var(--green);
 }
 .dark-toggle:active { background: var(--border); }
 
