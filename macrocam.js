@@ -1,5 +1,6 @@
 
 const CALORIE_GOAL = 1800;
+const API_BASE = 'https://macrocam.netlify.app';
 const getCalGoal = () => window.DYNAMIC_CALORIE_GOAL || CALORIE_GOAL;
 
 const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
@@ -7,7 +8,7 @@ const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
 async function callGemini(body) {
   for (const model of GEMINI_MODELS) {
     try {
-      const res = await fetch('/.netlify/functions/gemini', {
+      const res = await fetch(`${API_BASE}/.netlify/functions/gemini`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model, payload: body })
@@ -27,7 +28,7 @@ async function callGemini(body) {
 
 async function callGroq(messages, maxTokens = 1024) {
   try {
-    const res = await fetch('/.netlify/functions/groq', {
+    const res = await fetch(`${API_BASE}/.netlify/functions/groq`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
