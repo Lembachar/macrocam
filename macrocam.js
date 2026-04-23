@@ -3,7 +3,7 @@ const CALORIE_GOAL = 1800;
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8888' : 'https://macrocam.netlify.app';
 const getCalGoal = () => window.DYNAMIC_CALORIE_GOAL || CALORIE_GOAL;
 
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash'];
 
 async function callGemini(body) {
   for (const model of GEMINI_MODELS) {
@@ -289,7 +289,8 @@ async function analyzeFood() {
 
     // robust JSON extraction — handles truncated responses too
     let jsonStr = '';
-    const match = raw.match(/\{[\s\S]*/);
+    const cleaned = raw.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+    const match = cleaned.match(/\{[\s\S]*/);
     if (!match) throw new Error('No JSON found. Raw: ' + raw);
     jsonStr = match[0];
 
