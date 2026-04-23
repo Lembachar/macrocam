@@ -1,9 +1,9 @@
 
 const CALORIE_GOAL = 1800;
-const API_BASE = 'https://macrocam.netlify.app';
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8888' : 'https://macrocam.netlify.app';
 const getCalGoal = () => window.DYNAMIC_CALORIE_GOAL || CALORIE_GOAL;
 
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
 
 async function callGemini(body) {
   for (const model of GEMINI_MODELS) {
@@ -44,6 +44,47 @@ async function callGroq(messages, maxTokens = 1024) {
     return '';
   }
 }
+
+
+
+async function callLogMeal(base64Image) {
+  try {
+    const res = await fetch(`${API_BASE}/.netlify/functions/logmeal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: base64Image })
+    });
+    const data = await res.json();
+    if (data.error) return null;
+
+    const nutri = data.nutriData;
+    const seg = data.segData;
+
+    // Extract food name from segmentation result
+    const name = seg?.foodName ||
+      seg?.segmentation_results?.[0]?.recognition_results?.[0]?.name ||
+      'Food';
+
+    // Extract nutrition values
+    const n = nutri?.nutritional_info || {};
+    return {
+      name,
+      calories:  Math.round(n.calories   ?? 0),
+      carbs:     Math.round(n.totalCarbs  ?? n.carbohydrates ?? 0),
+      protein:   Math.round(n.protein     ?? 0),
+      fat:       Math.round(n.totalFat    ?? n.fat ?? 0),
+      fiber:     Math.round(n.dietaryFiber ?? n.fiber ?? 0),
+      sugar:     Math.round(n.totalSugars  ?? n.sugar ?? 0),
+      serving:   '1 serving',
+      estimatedGrams: Math.round(n.weight ?? 0),
+      ingredients: [],
+      vitaminC: -1, iron: -1, calcium: -1, potassium: -1
+    };
+  } catch(e) {
+    return null;
+  }
+}
+
 
 
 
@@ -192,23 +233,59 @@ async function analyzeFood() {
       generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
     });
     
-    console.log('Gemini response:', JSON.stringify(data));
+    
 
-    // rate limit
-    if (data.error?.code === 429) {
-      const retryAfter = data.error?.details?.find(d => d.retryDelay)?.retryDelay;
-      const secs = retryAfter ? parseInt(retryAfter) : 60;
-      document.getElementById('status-bar').classList.remove('show');
-      document.getElementById('scan-line').classList.remove('show');
-      showToast(`Rate limited — please wait ${secs}s`);
-      startCooldown(secs);
-      return;
+    // if Gemini failed, try LogMeal as fallback
+    if (data.error) {
+      document.getElementById('status-txt').textContent = 'Trying backup recognition…';
+      const logmealResult = await callLogMeal(imageBase64);
+      if (logmealResult) {
+        currentFood = logmealResult;
+        document.getElementById('status-bar').classList.remove('show');
+        document.getElementById('scan-line').classList.remove('show');
+        document.getElementById('analyze-btn').textContent = 'Analyze food';
+        showResult(currentFood);
+        insightLoaded = false;
+        incrementScanCounter();
+        const lastBtn = document.getElementById('last-result-btn');
+        if (lastBtn) lastBtn.style.display = 'block';
+        showResultScreen();
+        return;
+      }
+      // LogMeal also failed
+      if (data.error?.code === 429) {
+        const retryAfter = data.error?.details?.find(d => d.retryDelay)?.retryDelay;
+        const secs = retryAfter ? parseInt(retryAfter) : 60;
+        document.getElementById('status-bar').classList.remove('show');
+        document.getElementById('scan-line').classList.remove('show');
+        showToast(`Rate limited — please wait ${secs}s`);
+        startCooldown(secs);
+        return;
+      }
+      throw new Error('API error: ' + data.error.message);
     }
 
-    if (data.error) throw new Error('API error: ' + data.error.message);
 
-    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+
+    let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     console.log('Raw text:', raw);
+
+    // auto-retry once if response is empty
+    if (!raw.trim()) {
+      document.getElementById('status-txt').textContent = 'Retrying…';
+      const retryData = await callGemini({
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: 'image/jpeg', data: imageBase64 } },
+            { text: prompt }
+          ]
+        }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
+      });
+      raw = retryData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (!raw.trim()) throw new Error('Empty response after retry');
+    }
 
     // robust JSON extraction — handles truncated responses too
     let jsonStr = '';
@@ -226,24 +303,20 @@ async function analyzeFood() {
     try {
       currentFood = JSON.parse(jsonStr);
     } catch(parseErr) {
-      // last resort: extract key values with regex
-      const extract = (key) => {
-        const m = raw.match(new RegExp(`"${key}"\\s*:\\s*([\\d.]+)`));
-        return m ? parseFloat(m[1]) : 0;
-      };
-      const nameMatch = raw.match(/"name"\s*:\s*"([^"]+)"/);
-      currentFood = {
-        name:    nameMatch ? nameMatch[1] : 'Unknown food',
-        calories: extract('calories'),
-        carbs:    extract('carbs'),
-        protein:  extract('protein'),
-        fat:      extract('fat'),
-        fiber:    extract('fiber'),
-        sugar:    extract('sugar'),
-        serving:  '1 serving',
-        ingredients: []
-      };
-      if (!currentFood.calories) throw new Error('Could not parse nutrition data');
+      // ask Groq to repair the broken JSON
+      document.getElementById('status-txt').textContent = 'Repairing response…';
+      try {
+        const repaired = await callGroq([{
+          role: 'user',
+          content: `The following is a broken JSON nutrition object. Fix it and return ONLY valid JSON, no extra text:\n${jsonStr}`
+        }], 512);
+        const repairedText = repaired?.choices?.[0]?.message?.content || '';
+        const repairedMatch = repairedText.match(/\{[\s\S]*\}/);
+        if (!repairedMatch) throw new Error('Groq could not repair JSON');
+        currentFood = JSON.parse(repairedMatch[0]);
+      } catch(repairErr) {
+        throw new Error('Could not parse nutrition data even after repair');
+      }
     }
 
     document.getElementById('status-bar').classList.remove('show');
