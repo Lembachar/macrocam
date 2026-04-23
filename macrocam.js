@@ -230,7 +230,7 @@ async function analyzeFood() {
           { text: prompt }
         ]
       }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
+      generationConfig: { temperature: 0.1, maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } }
     });
     
     
@@ -266,7 +266,7 @@ async function analyzeFood() {
     }
 
 
-    
+
 
     let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     console.log('Raw text:', raw);
@@ -281,7 +281,7 @@ async function analyzeFood() {
             { text: prompt }
           ]
         }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
+        generationConfig: { temperature: 0.1, maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } }
       });
       raw = retryData.candidates?.[0]?.content?.parts?.[0]?.text || '';
       if (!raw.trim()) throw new Error('Empty response after retry');
