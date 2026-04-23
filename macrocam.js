@@ -57,28 +57,25 @@ async function callLogMeal(base64Image) {
     const data = await res.json();
     if (data.error) return null;
 
-    const nutri = data.nutriData;
-    const seg = data.segData;
+    const n = data.nutriData?.nutritional_info;
+    const t = n?.totalNutrients;
+    if (!n || !t) return null;
 
-    // Extract food name from segmentation result
-    const name = seg?.foodName ||
-      seg?.segmentation_results?.[0]?.recognition_results?.[0]?.name ||
-      'Food';
-
-    // Extract nutrition values
-    const n = nutri?.nutritional_info || {};
     return {
-      name,
-      calories:  Math.round(n.calories   ?? 0),
-      carbs:     Math.round(n.totalCarbs  ?? n.carbohydrates ?? 0),
-      protein:   Math.round(n.protein     ?? 0),
-      fat:       Math.round(n.totalFat    ?? n.fat ?? 0),
-      fiber:     Math.round(n.dietaryFiber ?? n.fiber ?? 0),
-      sugar:     Math.round(n.totalSugars  ?? n.sugar ?? 0),
-      serving:   '1 serving',
-      estimatedGrams: Math.round(n.weight ?? 0),
-      ingredients: [],
-      vitaminC: -1, iron: -1, calcium: -1, potassium: -1
+      name:           data.nutriData.foodName?.[0] || 'Food',
+      calories:       Math.round(n.calories ?? 0),
+      carbs:          Math.round(t.CHOCDF?.quantity ?? 0),
+      protein:        Math.round(t.PROCNT?.quantity ?? 0),
+      fat:            Math.round(t.FAT?.quantity ?? 0),
+      fiber:          Math.round(t.FIBTG?.quantity ?? 0),
+      sugar:          Math.round(t.SUGAR?.quantity ?? 0),
+      serving:        '1 serving',
+      estimatedGrams: Math.round(data.nutriData.serving_size ?? 0),
+      ingredients:    [],
+      vitaminC:       Math.round(t.VITC?.quantity ?? -1),
+      iron:           Math.round(t.FE?.quantity ?? -1),
+      calcium:        Math.round(t.CA?.quantity ?? -1),
+      potassium:      Math.round(t.K?.quantity ?? -1)
     };
   } catch(e) {
     return null;
