@@ -3,9 +3,10 @@ const CALORIE_GOAL = 1800;
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8888' : 'https://macrocam.netlify.app';
 const getCalGoal = () => window.DYNAMIC_CALORIE_GOAL || CALORIE_GOAL;
 
-const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash'];
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3-flash'];
 
 async function callGemini(body) {
+  let lastError = null;
   for (const model of GEMINI_MODELS) {
     try {
       const res = await fetch(`${API_BASE}/.netlify/functions/gemini`, {
@@ -14,15 +15,31 @@ async function callGemini(body) {
         body: JSON.stringify({ model, payload: body })
       });
       const text = await res.text();
-      if (!text || !text.trim()) continue;
-      const data = JSON.parse(text);
-      if (data.error?.code === 429 || data.error?.code >= 500) continue;
+      if (!text || !text.trim()) {
+        lastError = { code: 0, message: `Empty response from ${model}` };
+        continue;
+      }
+      let data;
+      try { data = JSON.parse(text); }
+      catch(e) {
+        lastError = { code: 0, message: `Bad JSON from ${model}` };
+        continue;
+      }
+      if (data.error) {
+        lastError = data.error;
+        const code = data.error.code;
+        // 404 = dead model, 429 = quota, 5xx = server error → try next model
+        if (code === 404 || code === 429 || code >= 500) continue;
+        // Any other error (400 bad request etc) → return immediately, don't waste quota
+        return data;
+      }
       return data;
     } catch(e) {
+      lastError = { code: 0, message: e.message };
       continue;
     }
   }
-  return { error: { code: 429, message: 'All models rate limited' } };
+  return { error: lastError || { code: 429, message: 'All models exhausted' } };
 }
 
 
