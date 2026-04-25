@@ -1,4 +1,3 @@
-
 const CALORIE_GOAL = 1800;
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8888' : 'https://macrocam.netlify.app';
 const getCalGoal = () => window.DYNAMIC_CALORIE_GOAL || CALORIE_GOAL;
@@ -235,7 +234,7 @@ async function analyzeFood() {
   document.getElementById('status-txt').textContent = 'Analyzing food…';
 
   try {
-    const prompt = `You are a nutrition expert analyzing a food photo. Estimate the portion size you see in the image and return ONLY this JSON with no extra text:\n{\"name\":\"\",\"calories\":0,\"carbs\":0,\"protein\":0,\"fat\":0,\"fiber\":0,\"sugar\":0,\"serving\":\"\",\"estimatedGrams\":0,\"ingredients\":[],\"vitaminC\":0,\"iron\":0,\"calcium\":0,\"potassium\":0}\nRules:\n- Estimate the actual portion visible in the photo (e.g. 1 apple ≈ 180g, a plate of rice ≈ 250g)\n- All nutrition values must be for the ESTIMATED portion shown, not per 100g\n- Set estimatedGrams to your best weight estimate in grams\n- For serving write a human description e.g. \"1 medium apple\" or \"1 plate of rice\"\n- Numbers only, no units in values\n- For ingredients list main components e.g. [\"chicken\",\"rice\",\"tomato\"]\n- For vitaminC, iron, calcium, potassium provide values in mg for the estimated portion\n- If complex meal with more than 3 ingredients set vitaminC, iron, calcium, potassium all to -1`;
+    const prompt = `You are a nutrition expert analyzing a food photo. Estimate the portion size you see in the image and return ONLY this JSON with no extra text:\n{\"name\":\"\",\"calories\":0,\"carbs\":0,\"protein\":0,\"fat\":0,\"fiber\":0,\"sugar\":0,\"serving\":\"\",\"estimatedGrams\":0,\"ingredients\":[],\"vitaminC\":0,\"iron\":0,\"calcium\":0,\"potassium\":0}\nRules:\n- Estimate the actual portion visible in the photo (e.g. 1 apple ≈ 180g, a plate of rice ≈ 250g)\n- All nutrition values must be for the ESTIMATED portion shown, not per 100g\n- Set estimatedGrams to your best weight estimate in grams\n- For serving write a human description e.g. \"1 medium apple\" or \"1 plate of rice\"\n- Numbers only, no units in values\n- For ingredients list main components e.g. [\"chicken\",\"rice\",\"tomato\"]\n- For vitaminC, iron, calcium, potassium provide values in mg for the estimated portion\n- Always provide your best estimate for vitaminC, iron, calcium, potassium in mg. Only set them to -1 if you truly cannot estimate them at all`;
 
     const data = await callGemini({
       contents: [{
@@ -310,7 +309,7 @@ async function analyzeFood() {
 
     // if truncated (no closing brace), try to repair it
     if (!jsonStr.includes('}')) {
-      jsonStr += ',"fiber":2,"sugar":5,"serving":"1 serving"}';
+      jsonStr += ',\"fiber\":0,\"sugar\":0,\"serving\":\"1 serving\",\"vitaminC\":-1,\"iron\":-1,\"calcium\":-1,\"potassium\":-1}';
     } else if ((jsonStr.match(/\{/g)||[]).length > (jsonStr.match(/\}/g)||[]).length) {
       jsonStr += '}'; // add missing closing brace
     }
@@ -1003,13 +1002,13 @@ async function manualSearch(overrideQuery) {
   showToast('Searching…');
 
   try {
-    const prompt = `Nutrition per 100g for "${q}". Return ONLY this JSON, no extra text:\n{"name":"","calories":0,"carbs":0,"protein":0,"fat":0,"fiber":0,"sugar":0,"serving":"100g","ingredients":[],"vitaminC":0,"iron":0,"calcium":0,"potassium":0}\nAll values per 100g, numbers only. For ingredients list main components. For vitaminC, iron, calcium, potassium provide accurate values in mg. If complex meal with more than 3 ingredients set vitaminC, iron, calcium, potassium all to -1.`;
+    const prompt = `Nutrition per 100g for "${q}". Return ONLY this JSON, no extra text:\n{"name":"","calories":0,"carbs":0,"protein":0,"fat":0,"fiber":0,"sugar":0,"serving":"100g","ingredients":[],"vitaminC":0,"iron":0,"calcium":0,"potassium":0}\nAll values per 100g, numbers only. For ingredients list main components. For vitaminC, iron, calcium, potassium provide accurate values in mg. Always provide your best estimate for vitaminC, iron, calcium, potassium in mg. Only set them to -1 if you truly cannot estimate them at all.`;
 
     const raw = await callGroq([{ role: 'user', content: prompt }], 800);
     if (!raw) throw new Error('No data');
     let jsonStr2 = (raw.match(/\{[\s\S]*/) || [''])[0];
     if (!jsonStr2) throw new Error('No data');
-    if (!jsonStr2.includes('}')) jsonStr2 += ',"fiber":2,"sugar":5,"serving":"1 serving"}';
+    if (!jsonStr2.includes('}')) jsonStr2 += ',\"fiber\":0,\"sugar\":0,\"serving\":\"1 serving\",\"vitaminC\":-1,\"iron\":-1,\"calcium\":-1,\"potassium\":-1}';
     else if ((jsonStr2.match(/\{/g)||[]).length > (jsonStr2.match(/\}/g)||[]).length) jsonStr2 += '}';
 
     try {
@@ -1017,7 +1016,7 @@ async function manualSearch(overrideQuery) {
     } catch(e) {
       const ex = (k) => { const m = raw.match(new RegExp(`"${k}"\\s*:\\s*([\\d.]+)`)); return m ? parseFloat(m[1]) : 0; };
       const nm = raw.match(/"name"\s*:\s*"([^"]+)"/);
-      currentFood = { name: nm?.[1]||'Unknown', calories:ex('calories'), carbs:ex('carbs'), protein:ex('protein'), fat:ex('fat'), fiber:ex('fiber'), sugar:ex('sugar'), serving:'1 serving', ingredients:[] };
+      currentFood = { name: nm?.[1]||'Unknown', calories:ex('calories'), carbs:ex('carbs'), protein:ex('protein'), fat:ex('fat'), fiber:ex('fiber'), sugar:ex('sugar'), serving:'1 serving', ingredients:[], vitaminC:ex('vitaminC')||0, iron:ex('iron')||0, calcium:ex('calcium')||0, potassium:ex('potassium')||0 };
       if (!currentFood.calories) throw new Error('No data');
     }
     imageBase64 = null;
@@ -1616,10 +1615,14 @@ async function lookupBarcode(code) {
       fiber:    Math.round((n['fiber_100g'] || 0) * 10) / 10,
       sugar:    Math.round((n['sugars_100g'] || 0) * 10) / 10,
       serving:  p.serving_size || '100g',
-      barcode:  code
+      barcode:  code,
+      vitaminC: -1,
+      iron:     -1,
+      calcium:  -1,
+      potassium:-1
     };
 
-    imageBase64 = null;
+    imageBase64 = 'barcode';
     document.getElementById('barcode-status').style.display = 'none';
 
     // show mini result in barcode screen
