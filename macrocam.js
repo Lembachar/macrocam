@@ -133,17 +133,72 @@ function showResultScreen() {
 }
 
 function goBackToScan() {
+  stopCamStream();
   const preview = document.getElementById('cam-preview');
   preview.src = '';
   preview.classList.remove('show');
   document.getElementById('cam-overlay').classList.remove('hidden');
   document.getElementById('analyze-btn').disabled = true;
   document.getElementById('analyze-btn').textContent = 'Analyze food';
-  document.getElementById('camera-input').value = '';
   document.getElementById('gallery-input').value = '';
   imageBase64 = null;
   imageFile = null;
   switchTab(document.querySelector('[data-screen="scan"]'));
+}
+
+
+
+// ═══════════════════════════════
+// CAMERA — getUserMedia
+// ═══════════════════════════════
+let camStream = null;
+
+document.getElementById('cam-box').addEventListener('click', async () => {
+  if (camStream) return;
+  const video = document.getElementById('cam-video');
+  const captureBtn = document.getElementById('cam-capture-btn');
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    video.srcObject = camStream;
+    await video.play();
+    video.style.display = 'block';
+    captureBtn.style.display = 'block';
+    document.getElementById('cam-overlay').classList.add('hidden');
+  } catch(err) {
+    showToast('Camera error: ' + err.message);
+  }
+});
+
+document.getElementById('cam-capture-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const video = document.getElementById('cam-video');
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  canvas.toBlob(blob => {
+    canvas.width = 0;
+    canvas.height = 0;
+    if (camStream) {
+      camStream.getTracks().forEach(t => t.stop());
+      camStream = null;
+    }
+    video.srcObject = null;
+    video.style.display = 'none';
+    document.getElementById('cam-capture-btn').style.display = 'none';
+    handleImageFile(blob);
+  }, 'image/jpeg', 0.92);
+});
+
+function stopCamStream() {
+  if (camStream) {
+    camStream.getTracks().forEach(t => t.stop());
+    camStream = null;
+  }
+  const video = document.getElementById('cam-video');
+  video.srcObject = null;
+  video.style.display = 'none';
+  document.getElementById('cam-capture-btn').style.display = 'none';
 }
 
 
@@ -169,6 +224,8 @@ function compressImage(file, maxSize = 512) {
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
         const compressed = canvas.toDataURL('image/jpeg', 0.8);
+        canvas.width = 0; canvas.height = 0;
+        img.src = '';
         resolve(compressed);
       };
       img.src = ev.target.result;
@@ -193,7 +250,7 @@ async function handleImageFile(file) {
   document.getElementById('status-bar').classList.remove('show');
 }
 
-document.getElementById('camera-input').addEventListener('change', e => handleImageFile(e.target.files[0]));
+
 document.getElementById('gallery-input').addEventListener('change', e => handleImageFile(e.target.files[0]));
 
 // ═══════════════════════════════
@@ -482,7 +539,13 @@ function showResult(food, resetPortion = true) {
 
   const thumb = document.getElementById('food-thumb');
   if (imageBase64) {
-    thumb.innerHTML = `<img src="data:image/jpeg;base64,${imageBase64}" style="width:100%;height:100%;object-fit:cover;border-radius:16px"/>`;
+    const thumbBlob = new Blob([Uint8Array.from(atob(imageBase64), c => c.charCodeAt(0))], { type: 'image/jpeg' });
+    const thumbUrl = URL.createObjectURL(thumbBlob);
+    const thumbImg = document.createElement('img');
+    thumbImg.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:16px';
+    thumbImg.onload = () => URL.revokeObjectURL(thumbUrl);
+    thumbImg.src = thumbUrl;
+    thumb.appendChild(thumbImg);
   } else {
     thumb.textContent = '🍽️';
   }
@@ -1959,6 +2022,9 @@ function loadDiaryLocation() {
     return;
   }
 
+  const cached = localStorage.getItem('macrocam_last_location');
+  if (cached) { el.textContent = cached; return; }
+
   navigator.geolocation.getCurrentPosition(
     async (pos) => {
       const { latitude, longitude } = pos.coords;
@@ -1989,7 +2055,6 @@ function loadDiaryLocation() {
 // ── INIT ──
 applyDark();
 renderDiary();
-loadDiaryLocation();
 updateScanCounter();
 loadProfile();
 if ('serviceWorker' in navigator) {
