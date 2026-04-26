@@ -116,9 +116,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.2s;
+      transition: background 0.2s, height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
-
+    .cam-box.expanded { height: 340px; }
     .nav-item.active .nav-icon { background: var(--green-l); }
     .nav-item.active { background: transparent; }
 
@@ -480,11 +480,12 @@
     .calorie-ring-card {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 16px;
-      padding: 16px;
+      padding: 20px 16px;
     }
 
-    .ring-wrap { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
+    .ring-wrap { position: relative; width: 96px; height: 96px; flex-shrink: 0; }
     .ring-wrap svg { position: absolute; top: 0; left: 0; }
 
     .ring-center {
@@ -496,23 +497,25 @@
       justify-content: center;
     }
 
-    .ring-pct { font-size: 0.85rem; font-weight: 800; color: var(--green); line-height: 1; }
-    .ring-lbl { font-size: 0.55rem; color: var(--text); margin-top: 1px; font-weight: 600; opacity: 0.45; }
+    .ring-pct { font-size: 1rem; font-weight: 800; color: var(--green); line-height: 1; }
+    .ring-lbl { font-size: 0.6rem; color: var(--text); margin-top: 1px; font-weight: 600; opacity: 0.45; }
 
-    .ring-info { flex: 1; }
+    .ring-info { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 0; margin-top: -10px; }
 
     .ring-big {
       font-family: 'Inter', sans-serif;
-      font-size: 1.9rem;
+      font-size: 3rem;
       font-weight: 900;
-      color: var(--text);
+      color: #0a0a0a;
       line-height: 1;
       letter-spacing: -0.04em;
     }
 
-    .ring-big span { font-size: 0.8rem; font-family: 'Inter', sans-serif; font-weight: 500; color: var(--text); opacity: 0.45; }
-    .ring-remaining { font-size: 0.75rem; color: var(--text); margin-top: 4px; opacity: 0.45; }
-
+    .ring-big span { font-size: 1.5rem; font-family: 'Inter', sans-serif; font-weight: 700; color: #0a0a0a; opacity: 1; }
+    .ring-remaining { font-size: 1rem; color: #0a0a0a; opacity: 0.55; font-weight: 600; }
+    .ring-side { display:flex; flex-direction:column; align-items:center; justify-content:center; padding-left:12px; border-left:2px solid var(--border); }
+    .ring-side-val { font-size:1.8rem; font-weight:900; color:var(--green); line-height:1; letter-spacing:-0.03em; }
+    .ring-side-lbl { font-size:0.65rem; font-weight:600; color:var(--text); opacity:0.45; margin-top:4px; text-transform:uppercase; letter-spacing:0.06em; }
     .meal-section { margin-bottom: 6px; }
 
     .meal-section-lbl {
@@ -583,6 +586,12 @@
 
     .summary-v { font-size: 1rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
     .summary-l { font-size: 0.62rem; color: var(--text); margin-top: 2px; opacity: 0.45; font-weight: 500; }
+    .pill-carbs { background: #fef9e7; }
+    .pill-carbs .summary-v { color: #e39c28; }
+    .pill-protein { background: #eef4ff; }
+    .pill-protein .summary-v { color: #2a9bfc; }
+    .pill-fat { background: #fff0f0; }
+    .pill-fat .summary-v { color: #ef4444; }
 
     /* ══════════════
        AI SCREEN

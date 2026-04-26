@@ -211,9 +211,9 @@
 
       <!-- macro grid -->
       <div class="macro-grid" id="macro-grid">
-        <div class="macro-card"><div class="macro-val" id="m-carbs">—</div><div class="macro-lbl">Carbs</div></div>
-        <div class="macro-card"><div class="macro-val" id="m-protein">—</div><div class="macro-lbl">Protein</div></div>
-        <div class="macro-card"><div class="macro-val" id="m-fat">—</div><div class="macro-lbl">Fat</div></div>
+        <div class="macro-card"><div class="macro-val" id="m-carbs" style="color:#b7770d;">—</div><div class="macro-lbl">Carbs</div></div>
+        <div class="macro-card"><div class="macro-val" id="m-protein" style="color:#4a7cc7;">—</div><div class="macro-lbl">Protein</div></div>
+        <div class="macro-card"><div class="macro-val" id="m-fat" style="color:#e05555;">—</div><div class="macro-lbl">Fat</div></div>
       </div>
 
       <!-- extra macros: fiber + sugar -->
@@ -279,7 +279,7 @@
     <!-- calorie ring -->
     <div class="section-bg calorie-ring-card" style="margin-bottom:14px">
       <div class="ring-wrap">
-        <canvas id="ring-canvas" width="72" height="72"></canvas>
+        <canvas id="ring-canvas" width="96" height="96"></canvas>
         <div class="ring-center">
           <div class="ring-pct" id="ring-pct">0%</div>
           <div class="ring-lbl">of goal</div>
@@ -287,15 +287,19 @@
       </div>
       <div class="ring-info">
         <div class="ring-big"><span id="total-kcal">0</span> <span>kcal</span></div>
-        <div class="ring-remaining" id="ring-remaining">1,800 remaining</div>
+        <div class="ring-remaining" id="ring-remaining"></div>
+      </div>
+      <div class="ring-side">
+        <div class="ring-side-val" id="ring-goal-lbl">—</div>
+        <div class="ring-side-lbl">kcal left</div>
       </div>
     </div>
 
     <!-- macro summary -->
     <div class="macro-summary">
-      <div class="summary-pill"><div class="summary-v" id="total-carbs">0g</div><div class="summary-l">Carbs</div></div>
-      <div class="summary-pill"><div class="summary-v" id="total-protein">0g</div><div class="summary-l">Protein</div></div>
-      <div class="summary-pill"><div class="summary-v" id="total-fat">0g</div><div class="summary-l">Fat</div></div>
+      <div class="summary-pill pill-carbs"><div class="summary-v" id="total-carbs">0g</div><div class="summary-l">Carbs</div></div>
+      <div class="summary-pill pill-protein"><div class="summary-v" id="total-protein">0g</div><div class="summary-l">Protein</div></div>
+      <div class="summary-pill pill-fat"><div class="summary-v" id="total-fat">0g</div><div class="summary-l">Fat</div></div>
     </div>
 
     <div class="sec-lbl">This week</div>

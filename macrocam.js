@@ -158,6 +158,7 @@ document.getElementById('cam-box').addEventListener('click', async () => {
   const video = document.getElementById('cam-video');
   const captureBtn = document.getElementById('cam-capture-btn');
   try {
+    document.getElementById('cam-box').classList.add('expanded');
     camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
     video.srcObject = camStream;
     await video.play();
@@ -198,6 +199,7 @@ function stopCamStream() {
   const video = document.getElementById('cam-video');
   video.srcObject = null;
   video.style.display = 'none';
+  document.getElementById('cam-box').classList.remove('expanded');
   document.getElementById('cam-capture-btn').style.display = 'none';
 }
 
@@ -754,7 +756,7 @@ function renderDiary() {
   const pct = Math.min(Math.round((totalKcal / getCalGoal()) * 100), 100);
   document.getElementById('ring-pct').textContent = pct + '%';
   const remaining = Math.max(getCalGoal() - totalKcal, 0);
-  document.getElementById('ring-remaining').textContent = remaining.toLocaleString() + ' kcal remaining';
+  document.getElementById('ring-goal-lbl').textContent = remaining.toLocaleString();
   drawRingCanvas(pct);
 
   // weekly bar chart
@@ -831,12 +833,12 @@ function drawRingCanvas(pct) {
   const canvas = document.getElementById('ring-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  const cx = 36, cy = 36, r = 29, lw = 7;
+  const cx = 48, cy = 48, r = 38, lw = 8;
   const isDarkMode = document.body.classList.contains('dark');
   const trackColor = isDarkMode ? '#2e3139' : '#ececea';
   const fillColor = getComputedStyle(document.documentElement).getPropertyValue('--green').trim() || '#3B6D11';
 
-  ctx.clearRect(0, 0, 72, 72);
+  ctx.clearRect(0, 0, 96, 96);
 
   // background track
   ctx.beginPath();
@@ -858,7 +860,7 @@ function drawRingCanvas(pct) {
     const ease = 1 - Math.pow(1 - progress, 3);
     const currentEnd = startAngle + (endAngle - startAngle) * ease;
 
-    ctx.clearRect(0, 0, 72, 72);
+    ctx.clearRect(0, 0, 96, 96);
 
     // track
     ctx.beginPath();
@@ -1483,7 +1485,7 @@ function renderMacrosChart() {
       labels: ['Carbs', 'Protein', 'Fat'],
       datasets: [{
         data: [Math.round(carbs), Math.round(protein), Math.round(fat)],
-        backgroundColor: ['#3B6D11', '#639922', '#97C459'],
+        backgroundColor: ['#e39c28', '#2a9bfc', '#ef4444'],
         borderWidth: 0,
       }]
     },
@@ -1495,9 +1497,9 @@ function renderMacrosChart() {
   });
 
   document.getElementById('macro-legend').innerHTML = [
-    { label: 'Carbs',   val: Math.round(carbs),   color: '#3B6D11', pct: Math.round((carbs/total)*100) },
-    { label: 'Protein', val: Math.round(protein), color: '#639922', pct: Math.round((protein/total)*100) },
-    { label: 'Fat',     val: Math.round(fat),     color: '#97C459', pct: Math.round((fat/total)*100) },
+    { label: 'Carbs',   val: Math.round(carbs),   color: '#e39c28', pct: Math.round((carbs/total)*100) },
+    { label: 'Protein', val: Math.round(protein), color: '#2a9bfc', pct: Math.round((protein/total)*100) },
+    { label: 'Fat',     val: Math.round(fat),     color: '#ef4444', pct: Math.round((fat/total)*100) },
   ].map(m => `
     <div style="display:flex;align-items:center;gap:8px;">
       <div style="width:10px;height:10px;border-radius:50%;background:${m.color};flex-shrink:0;"></div>
