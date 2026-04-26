@@ -105,7 +105,7 @@ async function callLogMeal(base64Image) {
 let currentFood = null;
 let imageBase64 = null;
 let imageFile = null;
-let diary = JSON.parse(localStorage.getItem('nutrisnap_diary') || '[]');
+let diary = JSON.parse(localStorage.getItem('macrocam_diary') || '[]');
 const getToday = () => new Date().toDateString();
 
 
@@ -723,7 +723,7 @@ document.getElementById('log-btn').addEventListener('click', () => {
     price: price
   };
   diary.unshift(entry);
-  localStorage.setItem('nutrisnap_diary', JSON.stringify(diary));
+  localStorage.setItem('macrocam_diary', JSON.stringify(diary));
 
   // check if goal hit — trigger confetti
   const totalAfter = diary.filter(e => e.date === getToday()).reduce((s, e) => s + (e.calories || 0), 0);
@@ -886,7 +886,7 @@ function drawRingCanvas(pct) {
 
 function deleteMeal(id) {
   diary = diary.filter(e => e.id !== id);
-  localStorage.setItem('nutrisnap_diary', JSON.stringify(diary));
+  localStorage.setItem('macrocam_diary', JSON.stringify(diary));
   renderDiary();
 }
 
@@ -1101,9 +1101,9 @@ async function manualSearch(overrideQuery) {
 // ═══════════════════════════════
 // PROFILE & GOALS
 // ═══════════════════════════════
-let profile = JSON.parse(localStorage.getItem('nutrisnap_profile') || '{}');
+let profile = JSON.parse(localStorage.getItem('macrocam_profile') || '{}');
 let userGoal = profile.goal || 'maintain';
-let waterConsumed = parseInt(localStorage.getItem('nutrisnap_water_' + getToday()) || '0');
+let waterConsumed = parseInt(localStorage.getItem('macrocam_water_' + getToday()) || '0');
 
 function loadProfile() {
   if (profile.name)   document.getElementById('p-name').value = profile.name;
@@ -1134,7 +1134,7 @@ function saveProfile() {
   profile.weightUnit = document.getElementById('p-weight-unit').value;
   profile.activity   = parseFloat(document.getElementById('p-activity').value);
   profile.goal       = userGoal;
-  localStorage.setItem('nutrisnap_profile', JSON.stringify(profile));
+  localStorage.setItem('macrocam_profile', JSON.stringify(profile));
 }
 
 function selectGoal(btn) {
@@ -1200,7 +1200,7 @@ function recalcGoals() {
 
   // water goal: 35ml per kg bodyweight
   const waterGoalMl = Math.round(weightKg * 35 / 50) * 50;
-  localStorage.setItem('nutrisnap_water_goal', waterGoalMl);
+  localStorage.setItem('macrocam_water_goal', waterGoalMl);
   document.getElementById('water-goal-lbl').textContent = waterGoalMl.toLocaleString() + ' ml';
   document.getElementById('water-tip').textContent =
     `Based on your weight (${Math.round(weightKg)}kg), you should drink ~${waterGoalMl}ml daily. That's roughly ${Math.round(waterGoalMl/250)} glasses of water.`;
@@ -1210,18 +1210,18 @@ function recalcGoals() {
 // ── WATER TRACKER ──
 function addWater(ml) {
   waterConsumed += ml;
-  localStorage.setItem('nutrisnap_water_' + getToday(), waterConsumed);
+  localStorage.setItem('macrocam_water_' + getToday(), waterConsumed);
   updateWaterUI();
 }
 
 function resetWater() {
   waterConsumed = 0;
-  localStorage.setItem('nutrisnap_water_' + getToday(), 0);
+  localStorage.setItem('macrocam_water_' + getToday(), 0);
   updateWaterUI();
 }
 
 function updateWaterUI() {
-  const goal = parseInt(localStorage.getItem('nutrisnap_water_goal') || 2000);
+  const goal = parseInt(localStorage.getItem('macrocam_water_goal') || 2000);
   const pct = Math.min(Math.round((waterConsumed / goal) * 100), 100);
   document.getElementById('water-consumed').textContent = waterConsumed.toLocaleString() + ' ml';
   document.getElementById('water-pct').textContent = pct + '%';
@@ -1248,13 +1248,13 @@ function updateStreak() {
 }
 
 function updateScanCounter() {
-  const key = 'nutrisnap_scans_' + getToday();
+  const key = 'macrocam_scans_' + getToday();
   const count = parseInt(localStorage.getItem(key) || '0');
   document.getElementById('scan-count').textContent = count;
 }
 
 function incrementScanCounter() {
-  const key = 'nutrisnap_scans_' + getToday();
+  const key = 'macrocam_scans_' + getToday();
   const count = parseInt(localStorage.getItem(key) || '0') + 1;
   localStorage.setItem(key, count);
   updateScanCounter();
@@ -1284,7 +1284,7 @@ function confirmClearAll() { document.getElementById('clear-modal').classList.ad
 function closeClearModal()  { document.getElementById('clear-modal').classList.remove('show'); }
 function clearAllMeals() {
   diary = diary.filter(e => e.date !== getToday());
-  localStorage.setItem('nutrisnap_diary', JSON.stringify(diary));
+  localStorage.setItem('macrocam_diary', JSON.stringify(diary));
   closeClearModal();
   renderDiary();
   showToast('All meals cleared');
@@ -1303,7 +1303,7 @@ document.getElementById('diary-search').addEventListener('input', () => {
 // ══════════════════════════════
 // DARK MODE
 // ══════════════════════════════
-let isDark = localStorage.getItem('nutrisnap_dark') === '1';
+let isDark = localStorage.getItem('macrocam_dark') === '1';
 
 function applyDark() {
   document.body.classList.toggle('dark', isDark);
@@ -1315,14 +1315,14 @@ function applyDark() {
 }
 function toggleDark() {
   isDark = !isDark;
-  localStorage.setItem('nutrisnap_dark', isDark ? '1' : '0');
+  localStorage.setItem('macrocam_dark', isDark ? '1' : '0');
   applyDark();
 }
 
 // ══════════════════════════════
 // FAVORITES
 // ══════════════════════════════
-let favorites = JSON.parse(localStorage.getItem('nutrisnap_favorites') || '[]');
+let favorites = JSON.parse(localStorage.getItem('macrocam_favorites') || '[]');
 
 function toggleFavorite() {
   if (!currentFood) return;
@@ -1339,7 +1339,7 @@ function toggleFavorite() {
     btn.classList.remove('saved');
     showToast('Removed from favorites');
   }
-  localStorage.setItem('nutrisnap_favorites', JSON.stringify(favorites));
+  localStorage.setItem('macrocam_favorites', JSON.stringify(favorites));
 }
 
 function updateFavBtn() {
@@ -1385,7 +1385,7 @@ function logFavorite(idx) {
 
 function deleteFavorite(idx) {
   favorites.splice(idx, 1);
-  localStorage.setItem('nutrisnap_favorites', JSON.stringify(favorites));
+  localStorage.setItem('macrocam_favorites', JSON.stringify(favorites));
   renderFavorites();
 }
 
@@ -1728,14 +1728,14 @@ function toggleBarcodeSection() {
 // ══════════════════════════════
 // BUDGET TRACKER
 // ══════════════════════════════
-let dailyBudget = parseFloat(localStorage.getItem('nutrisnap_budget') || '20');
+let dailyBudget = parseFloat(localStorage.getItem('macrocam_budget') || '20');
 
 function saveBudget() {
   const input = document.getElementById('budget-input');
   const val = parseFloat(input.value);
   if (!val || val <= 0) { showToast('Enter a valid budget'); return; }
   dailyBudget = val;
-  localStorage.setItem('nutrisnap_budget', val);
+  localStorage.setItem('macrocam_budget', val);
   input.value = '';
   updateBudgetUI();
   showToast(`Budget set to $${val.toFixed(2)}!`);
