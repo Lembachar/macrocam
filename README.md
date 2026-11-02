@@ -1,170 +1,90 @@
-MacroCam 📸
-An AI-powered food scanner and nutrition tracker built as a Progressive Web App — point your camera at any food, get instant calorie and macro breakdown, log meals to a diary, and track your daily health goals.
-Built with: Vanilla JS + HTML/CSS | Gemini AI | Groq (Llama 3.3 70B) | Chart.js | Open Food Facts API | Netlify Functions | PWA
-🔗 Live: macrocam.netlify.app
+<h1 align="center">MacroCam</h1>
 
-What It Does
-Point your camera at any food — a banana, a plate of pasta, a packaged product — and MacroCam identifies it instantly using Google's Gemini AI. It returns full nutritional data including vitamins and minerals, lets you adjust portion size in any unit, logs meals to a personal diary, and gives you AI-generated health insights based on what you've eaten.
+<p align="center">
+  <b>Point your camera at any food and get calories, macros and micronutrients in seconds.</b><br>
+  An AI-powered food scanner and nutrition tracker, built as an installable Progressive Web App.
+</p>
 
-Tech Stack
-LayerTechnologyCoreHTML, CSS, Vanilla JavaScriptAI / Food RecognitionGoogle Gemini API (gemini-2.5-flash) with 3-model fallbackText AI / Meal PlannerGroq API (llama-3.3-70b-versatile)Charts & GraphsChart.jsBarcode LookupOpen Food Facts APIBarcode ReadingNative BarcodeDetector API (Android Chrome)StoragelocalStorageBackend ProxyNetlify Serverless FunctionsDeploymentNetlify (GitHub CI/CD)App InstallPWA (manifest + service worker)
+<p align="center">
+  <a href="https://macrocam.netlify.app"><img alt="Live demo" src="https://img.shields.io/badge/Live_demo-macrocam.netlify.app-22c55e?style=for-the-badge&logo=netlify&logoColor=white"></a>
+</p>
 
-Project Structure
-macrocam/
-├── index.html              # All screens and layout
-├── nutrisnap.js            # All app logic and API calls
-├── style.css               # Styling and dark mode
-├── manifest.json           # PWA manifest
-├── sw.js                   # Service worker
-├── icon.png                # App icon
-├── server.js               # Local dev proxy (not deployed)
-└── netlify/
-    └── functions/
-        ├── gemini.js       # Gemini API proxy
-        └── groq.js         # Groq API proxy
+<p align="center">
+  <img alt="JavaScript" src="https://img.shields.io/badge/JavaScript-vanilla-f7df1e?style=flat-square&logo=javascript&logoColor=black">
+  <img alt="Gemini" src="https://img.shields.io/badge/Google_Gemini-vision-4285f4?style=flat-square&logo=googlegemini&logoColor=white">
+  <img alt="Groq" src="https://img.shields.io/badge/Groq-Llama_3.3_70B-f55036?style=flat-square">
+  <img alt="Chart.js" src="https://img.shields.io/badge/Chart.js-4-ff6384?style=flat-square&logo=chartdotjs&logoColor=white">
+  <img alt="PWA" src="https://img.shields.io/badge/PWA-installable-5a0fc8?style=flat-square&logo=pwa&logoColor=white">
+  <img alt="Lighthouse" src="https://img.shields.io/badge/Lighthouse-97_·_95_·_100_·_100-0cce6b?style=flat-square&logo=lighthouse&logoColor=white">
+</p>
 
-Getting Started
-Prerequisites
+<p align="center">
+  <img src="docs/scan.png" alt="MacroCam scan screen" width="300">
+  &nbsp;&nbsp;
+  <img src="docs/meal-planner.png" alt="MacroCam AI meal planner" width="300">
+</p>
 
-A modern browser (Chrome or Safari)
-Node.js (for local server)
-A Google Gemini API key from aistudio.google.com
-A Groq API key from console.groq.com
+---
 
-1. Clone the project
-bashgit clone https://github.com/Lembachar/macrocam.git
+## Highlights
+
+- **41+ users in 10+ countries** since launch.
+- **Lighthouse 97 / 95 / 100 / 100** (performance, accessibility, best practices, SEO).
+- **Resilient AI calls:** Gemini 2.5 → 2.0 → 1.5 Flash fallback chain, with a countdown when the quota is hit.
+- **No exposed keys:** every AI request goes through Netlify serverless functions; keys live only in environment variables.
+- **Cheaper requests:** photos are compressed to 512 px before upload, and responses are cached where possible.
+
+## Features
+
+| Area | What it does |
+|---|---|
+| **Scan** | Photo or gallery upload → Gemini identifies the food and returns full nutrition, including vitamins and minerals. Barcode scanning (native `BarcodeDetector`) pulls packaged products from Open Food Facts. |
+| **Search** | Type any food, with live suggestions and Groq-powered lookup. Portion selector with unit conversion (g, kg, oz, lb, cup, tbsp, tsp). |
+| **Diary** | Log meals by category with optional price. Animated calorie ring, macro totals, meal search, and confetti when you hit your goal. |
+| **Insights** | 7-day calorie chart, macro doughnut, weekly nutrition score, a daily AI tip, and eating-pattern detection (breakfast habits, biggest meal, snacking). |
+| **Meal planner** | Set a calorie target, ingredients and cuisine; Groq returns three recipes with exact quantities and steps. |
+| **Profile** | Calorie target (Mifflin-St Jeor), protein goal, BMI, ideal weight (Devine), water tracker, logging streak, saved foods, food budget, dark mode. |
+
+## Architecture
+
+```
+Browser (PWA: index.html · macrocam.js · style.css · sw.js)
+   │  photo / text / barcode
+   ├──► /.netlify/functions/gemini   ──► Google Gemini API  (vision, insights)
+   ├──► /.netlify/functions/groq     ──► Groq API           (search, meal planner, tips)
+   ├──► /.netlify/functions/logmeal  ──► LogMeal API        (meal segmentation, nutrition)
+   └──► Open Food Facts API                                  (barcode lookup)
+State: localStorage (diary, profile, favourites, water, theme)
+```
+
+## Run locally
+
+Prerequisites: Node.js, the [Netlify CLI](https://docs.netlify.com/cli/get-started/), a [Gemini API key](https://aistudio.google.com), a [Groq API key](https://console.groq.com) and, optionally, a [LogMeal](https://logmeal.com) key.
+
+```bash
+git clone https://github.com/Lembachar/macrocam.git
 cd macrocam
-2. Add your API keys to server.js
-jsconst GROQ_KEY = 'your-groq-key-here';
-const GEMINI_KEY = 'your-gemini-key-here';
-3. Run locally
-bashnode server.js
-Then open http://localhost:8888 in your browser.
-4. Deploy to Netlify
+netlify env:set GEMINI_KEY your-gemini-key
+netlify env:set GROQ_KEY your-groq-key
+netlify env:set LOGMEAL_KEY your-logmeal-key
+netlify dev        # serves the app and functions on http://localhost:8888
+```
 
-Push to GitHub — Netlify auto-deploys on every push
-Add GEMINI_KEY and GROQ_KEY as environment variables in Netlify dashboard
+Deploying: push to GitHub, and Netlify builds on every push. Set the same three keys in the Netlify dashboard.
 
+## Install on your phone
 
-Installing as a Mobile App
-Android
+- **Android (Chrome):** open [macrocam.netlify.app](https://macrocam.netlify.app) → menu → *Add to Home screen*.
+- **iPhone (Safari):** open the site → Share → *Add to Home Screen*.
 
-Open macrocam.netlify.app in Chrome
-Tap the "Add to Home Screen" banner or go to browser menu → Add to Home Screen
-App installs with icon, opens fullscreen like a native app
+## Roadmap
 
-iPhone
+- Step and workout tracking with calories burned
+- 4-week weight forecast from your daily routine
+- Smarter offline mode that caches your most-used foods
+- Streak milestones and badges
+- Community profiles and progress posts
 
-Open macrocam.netlify.app in Safari (must be Safari)
-Tap the Share button → "Add to Home Screen" → Add
+---
 
-
-What's Been Built
-Core Features ✅
-
-Food scanner — take a photo or upload from gallery, Gemini identifies the food and returns full nutrition data including vitamins and minerals
-Manual search — type any food name with live suggestions and Groq-powered lookup
-Barcode scanner — scan packaged food barcodes using native BarcodeDetector API, data fetched from Open Food Facts
-Portion size selector — adjust amount with unit conversion (g, kg, oz, lb, cup, tbsp, tsp), all nutrition values update live
-Health score badge — rates each food as Great / Moderate / High in calories based on nutrition profile
-Vitamins & minerals — real data from Gemini for simple foods; skipped for complex meals
-
-Diary & Tracking ✅
-
-Food diary — log every meal with category (breakfast, lunch, dinner, snack) and optional price
-Calorie ring — animated circular progress showing daily goal completion
-Weekly bar chart — 7-day calorie history with today highlighted
-Macro summary — daily carbs, protein and fat totals
-Meal search & filter — search logged meals, grouped by category
-Clear all — remove all today's meals with confirmation modal
-Confetti animation — triggers when daily calorie goal is reached 🎉
-
-Insights ✅
-
-Weekly calorie chart — bar chart showing calories per day for the last 7 days (Chart.js)
-Today's macro doughnut chart — visual carbs/protein/fat split with legend
-Weekly nutrition score — calculated score based on how close you stayed to your calorie goal each day
-Daily AI insight — Groq generates a personalized nutrition tip based on what you ate today
-Eating pattern detection — analyzes your diary to detect breakfast habits, biggest meal, snacking frequency, and calorie consistency
-
-Meal Planner ✅
-
-Set a calorie target with quick presets
-Add optional ingredients and cuisine preference
-Choose between meals only, shakes only, or both
-Groq suggests 3 options with full recipes, exact ingredient quantities, and step-by-step instructions
-
-Profile ✅
-
-Body stats — name, age, gender, height (cm/ft), weight (kg/lb)
-Goal setting — lose weight, maintain, or gain muscle
-Activity level — sedentary to extremely active
-Auto-calculated goals — daily calorie target (Mifflin-St Jeor formula), protein goal, BMI with label, ideal body weight (Devine formula)
-Water tracker — personalized daily goal based on body weight, quick add buttons (+150/250/330/500ml)
-Logging streak — counts consecutive days with logged meals 🔥
-Saved foods — heart any food result to save it, quick re-log from Profile
-
-Other ✅
-
-Dark mode — full dark theme toggle, preference saved in localStorage
-Protein distribution analyzer — shows how protein is spread across meal categories
-Food budget tracker — set a daily budget, add price per meal, tracks daily spending
-PWA — installable on Android and iPhone, works offline for cached screens
-Multi-model fallback — Gemini 2.5 → 2.0 → 1.5 Flash, never dies on rate limits
-Serverless proxy — API keys stored in Netlify environment variables, never exposed client-side
-
-
-What's Coming Next
-
-Step & activity counter — track steps and workouts, calculate calories burned
-Progress Forecast — input daily routine, get a 4-week weight projection chart
-Smart offline mode — automatically caches your most-used foods for offline use
-Expanded streak system — milestones, badges, weekly streak goals
-Spotify integration — link your account to play workout music from the app
-Community features — profiles, progress updates, social reactions (v2)
-
-
-API Usage
-APIPurposeCostGoogle Gemini (gemini-2.5-flash)Food recognition, AI insightsFree tier — 500 req/dayGroq (llama-3.3-70b)Manual search, meal planner, insightsFree tier — 14,400 req/dayOpen Food FactsBarcode product lookupFree, unlimitedChart.jsDashboard chartsFree library
-
-Notes
-
-All user data stored in localStorage — diary, profile, favorites, water tracker, dark mode preference
-Gemini and Groq responses cached where possible to reduce API calls
-Image compression to 512px before sending to Gemini reduces quota usage significantly
-Rate limit handling built in — shows countdown timer when Gemini quota is hit
-API keys stored server-side in Netlify environment variables — never exposed in client code
-
-
-
-
-
-
-
-<!--new ideas on the way--!>
-<-->
-
-add also community , like insta and tiktok , meaning the person has a profile with followers and so on , u can update ur progress and people can reat to ur posts
--> link spotify to start music 
-
-
-
-
-
-Shipped a bunch of new features on MacroCam this week — and learned a lot doing it.
-
-MacroCam is a PWA I'm building that uses AI to identify food from a photo and return full nutrition data instantly.
-
-What's new:
-→ AI food scanner powered by Gemini — point your camera, get calories, macros, and micronutrients in seconds
-→ Meal planner that actually solves "what do I eat" — set a calorie target, pick a cuisine, choose meals only or shakes only, and get 3 AI-generated suggestions with full recipes and steps
-→ Multi-model fallback architecture (Gemini 2.5 → 2.0 → 1.5) so the app never dies on rate limits
-→ Serverless proxy via Netlify Functions to keep API keys off the client
-
-The meal planner was the most satisfying to build — turns a daily frustration into a 10-second decision.
-
-Still rough around the edges — bugs exist, UX has room to grow. If you try it and find something broken or have a suggestion, I genuinely want to hear it.
-
-🔗 macrocam.netlify.app
-
-#buildinpublic #webdev #javascript #AI #PWA
+<p align="center"><sub>Built by <a href="https://github.com/Lembachar">Imad Lembachar</a></sub></p>
